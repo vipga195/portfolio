@@ -8,6 +8,9 @@ import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother, ScrollToPlugin, useGSAP);
 
+// Survives client-side navigation (module scope), used to detect a locale switch on remount
+let lastPathname: string | null = null;
+
 const HEADER_HEIGHT = 64;
 const HEADER_OFFSET = `top ${HEADER_HEIGHT}px`;
 const SCROLL_DURATION = 1.2;
@@ -105,6 +108,15 @@ export default function SmoothScroll({
       const target = findTarget(window.location.hash);
       if (target) scrollToTarget(target);
     };
+
+    // Next.js skips its scroll-to-top because the first element of the page is the fixed header
+    const isRouteChange = lastPathname !== null && lastPathname !== window.location.pathname;
+    lastPathname = window.location.pathname;
+    if (isRouteChange && !window.location.hash) {
+      const smoother = ScrollSmoother.get();
+      if (smoother) smoother.scrollTo(0, false);
+      else window.scrollTo(0, 0);
+    }
 
     if (document.readyState === "complete") {
       scrollToInitialHash();
