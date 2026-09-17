@@ -12,6 +12,13 @@ export type Project = {
   stack: string[];
 };
 
+export type KnowledgeEntry = {
+  title: string;
+  summary: string;
+  tags: string[];
+  url?: string;
+};
+
 export type Experience = {
   company: string;
   position: string;
@@ -119,5 +126,28 @@ export const EXPERIENCES: Experience[] = [
       "Emartmall and ERP mobile apps with React Native",
     ],
     stack: ["React.js", "React Native", "Redux Saga"],
+  },
+];
+
+export const KNOWLEDGE_BASE: KnowledgeEntry[] = [
+  {
+    title: "Building Contentful App Framework extensions",
+    summary: "Custom field editors and sidebar apps that make content editing faster and safer for editors.",
+    tags: ["Contentful", "React"],
+  },
+  {
+    title: "GSAP ScrollTrigger in React / Next.js",
+    summary: "Scoping animations with useGSAP, cleanup on unmount and respecting prefers-reduced-motion.",
+    tags: ["GSAP", "Next.js"],
+  },
+  {
+    title: "Three.js performance on marketing sites",
+    summary: "Client-only canvas, capped device pixel ratio and lightweight geometry to keep Core Web Vitals healthy.",
+    tags: ["Three.js", "Performance"],
+  },
+  {
+    title: "CI/CD for front-end with GitHub Actions",
+    summary: "Lint, typecheck and build on every pull request before deploying.",
+    tags: ["GitHub Actions", "CI/CD"],
   },
 ];

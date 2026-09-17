@@ -3,6 +3,7 @@ const NAV_ITEMS = [
   { href: "#skills", label: "Skills" },
   { href: "#projects", label: "Projects" },
   { href: "#experience", label: "Experience" },
+  { href: "#knowledge-base", label: "Knowledge" },
   { href: "#contact", label: "Contact" },
 ];
 

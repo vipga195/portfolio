@@ -52,9 +52,11 @@ University of Science (HCMUS) — Information Technology, 2013 – 2016
 
 ## About this site
 
-Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTrigger) and Three.js (React Three Fiber).
+Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTrigger, ScrollSmoother) and Three.js (React Three Fiber).
 
 - Three.js particle hero, GSAP intro and scroll reveal (respects `prefers-reduced-motion`)
+- Smooth scrolling with GSAP ScrollSmoother, including anchor navigation
+- Knowledge Base section with technical notes
 - All content lives in [`src/data/profile.ts`](src/data/profile.ts)
 - GitHub Actions CI: lint, typecheck, build
 
@@ -68,6 +70,7 @@ npm run dev
 ### Roadmap
 
 - [ ] Case studies with screenshots (problem → solution → result)
+- [ ] Full Knowledge Base articles (detail pages)
 - [ ] Content managed in Contentful
 - [ ] English / Japanese (i18n)
 - [ ] Side projects: Contentful extension, fullstack app, animation lab
