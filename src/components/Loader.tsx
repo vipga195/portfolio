@@ -8,12 +8,18 @@ import { getIntroPhase, setIntroPhase } from "@/lib/intro";
 
 gsap.registerPlugin(useGSAP);
 
-const SPREAD_DURATION = 1.8;
+const SPREAD_DURATION = 3.6;
 const SURGE_HEIGHT = 0.18;
-const SURGE_TAPER = 0.1;
+const CURL_BUMP = 0.14;
+const CURL_WIDTH = 0.18;
+const LIP_SIZE = 1.4;
+const FACE_SLANT = 0.06;
+// Head positions (0..1 of width): crest rises, lip rolls out, then both settle before touching the right wall
+const CREST_GROW: readonly [number, number] = [0, 0.2];
+const LIP_GROW: readonly [number, number] = [0.08, 0.35];
+const CURL_COLLAPSE: readonly [number, number] = [0.78, 0.98];
 const LAYER_LAG = 0.12;
-// Overshoot so every layer's tapered leading edge fully passes the right wall before rising
-const SPREAD_END = 1 + SURGE_TAPER + LAYER_LAG;
+const SPREAD_END = 1 + LAYER_LAG;
 const PRELOAD_TARGET = 0.9;
 const PRELOAD_DURATION = 2.6;
 const FINISH_DURATION = 1;
@@ -45,6 +51,18 @@ const LAYERS: Layer[] = [
     },
   },
 ];
+
+function smoothstep([from, to]: readonly [number, number], value: number): number {
+  const t = Math.min(Math.max((value - from) / (to - from), 0), 1);
+  return t * t * (3 - 2 * t);
+}
+
+// Breaking lip: rolls forward and down, hooks back under itself, then a hollow face drops to the floor
+function drawCurl(ctx: CanvasRenderingContext2D, px: number, py: number, size: number, floor: number, slant: number): void {
+  ctx.bezierCurveTo(px + 0.07 * size, py - 0.01 * size, px + 0.13 * size, py + 0.02 * size, px + 0.12 * size, py + 0.08 * size);
+  ctx.quadraticCurveTo(px + 0.11 * size, py + 0.11 * size, px + 0.08 * size, py + 0.1 * size);
+  ctx.bezierCurveTo(px + 0.05 * size, py + 0.09 * size, px + 0.03 * size + slant * 0.5, py + 0.18 * size, px + 0.1 * size + slant, floor);
+}
 
 // Crest position ping-pongs 0 -> 1 -> 0 with eased turnarounds, like water hitting a wall
 function crestPosition(time: number): { pos: number; dir: number } {
@@ -105,20 +123,33 @@ export default function Loader(): React.JSX.Element | null {
           if (front <= 0) return;
           const bounceCrest = crestPosition(riseTime + WAVE_TRAVEL - offset).pos;
           const crest = rising ? bounceCrest : Math.min(front, bounceCrest);
+          // Crest and lip grow in while entering, then settle into a plain wave as the lip reaches the right wall
+          const collapse = rising ? 0 : 1 - smoothstep(CURL_COLLAPSE, head);
+          const crestScale = smoothstep(CREST_GROW, head) * collapse;
+          const lipScale = smoothstep(LIP_GROW, head) * collapse;
+          const bumpAmp = WAVE_AMP + (CURL_BUMP - WAVE_AMP) * crestScale;
+          const bumpWidth = WAVE_WIDTH + (CURL_WIDTH - WAVE_WIDTH) * crestScale;
+          // Entering surge rises from the floor instead of sliding in at full height
+          const entry = rising ? 1 : smoothstep(CREST_GROW, head);
           ctx.beginPath();
           ctx.moveTo(0, height);
+          let surface = height;
           for (let i = 0; i <= SEGMENTS; i++) {
             const nx = (i / SEGMENTS) * front;
-            const bump = Math.exp(-(((nx - crest) / WAVE_WIDTH) ** 2)) * WAVE_AMP;
+            const bump = Math.exp(-(((nx - crest) / bumpWidth) ** 2)) * bumpAmp;
             const ripple = Math.sin(nx * Math.PI * 3 - ripplePhase * Math.PI + offset * 4) * RIPPLE_AMP;
             const tilt = rising ? (nx - 0.5) * (pos - 0.5) * 2 * TILT_AMP : 0;
-            const surface = level - (bump + ripple + tilt) * height * energy * amp;
-            // Leading edge of the surge tapers down to the floor
-            const edge = Math.min((head - nx) / SURGE_TAPER, 1);
-            const taper = edge * edge * (3 - 2 * edge);
-            ctx.lineTo(nx * width, height - (height - surface) * taper);
+            surface = height - (height - level + (bump + ripple + tilt) * height * energy * amp) * entry;
+            ctx.lineTo(nx * width, surface);
           }
-          ctx.lineTo(front * width, height);
+          if (!rising) {
+            const px = head * width;
+            ctx.lineTo(px, surface);
+            const slant = height * FACE_SLANT * (1 - lipScale) * entry;
+            drawCurl(ctx, px, surface, height * lipScale * amp * LIP_SIZE, height, slant);
+          } else {
+            ctx.lineTo(width, height);
+          }
           ctx.closePath();
           ctx.fillStyle = fill(ctx, height);
           ctx.fill();
@@ -132,7 +163,7 @@ export default function Loader(): React.JSX.Element | null {
 
       let pageLoaded = document.readyState === "complete";
       const tl = gsap.timeline();
-      tl.to(spread, { value: SPREAD_END, duration: SPREAD_DURATION, ease: "power1.inOut" })
+      tl.to(spread, { value: SPREAD_END, duration: SPREAD_DURATION, ease: "sine.inOut" })
         .to(progress, { value: PRELOAD_TARGET, duration: PRELOAD_DURATION, ease: "power1.inOut" })
         .call(() => {
           if (!pageLoaded) tl.pause();
