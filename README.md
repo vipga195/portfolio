@@ -70,7 +70,7 @@ npm run dev
 ### Run with Docker
 
 ```bash
-docker compose up -d --build   # http://localhost:1995
+docker compose up -d   # http://localhost:1995
 docker compose down
 ```
 
