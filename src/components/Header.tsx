@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { LOCALES, LOCALE_LABELS, localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 
@@ -39,7 +41,7 @@ export default function Header({ lang, nav, languageLabel, menuLabel }: HeaderPr
           <ul aria-label={languageLabel} className="flex gap-1 font-mono text-xs">
             {LOCALES.map((locale) => (
               <li key={locale}>
-                <a
+                <Link
                   href={localePath(locale)}
                   hrefLang={locale}
                   lang={locale}
@@ -49,7 +51,7 @@ export default function Header({ lang, nav, languageLabel, menuLabel }: HeaderPr
                   }`}
                 >
                   {LOCALE_LABELS[locale]}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>

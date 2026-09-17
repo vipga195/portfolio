@@ -56,7 +56,7 @@ University of Science (HCMUS) — Information Technology, 2013 – 2016
 Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTrigger, ScrollSmoother) and Three.js.
 
 - Three.js signature hero: particles assemble into the "H." monogram with idle wave/sway and pointer repulsion, GSAP intro and scroll reveal (`prefers-reduced-motion`: no intro, softer idle motion)
-- English (default, `/`), Japanese (`/ja`), Vietnamese (`/vi`) with static generation, hreflang alternates and header language switcher; `/en` redirects to `/`
+- English (default, `/`), Japanese (`/ja`), Vietnamese (`/vi`) with static generation, hreflang alternates and header language switcher (client-side navigation via `next/link`); `/en` redirects to `/`
 - Smooth scrolling with GSAP ScrollSmoother, including anchor navigation
 - Mobile hamburger menu (closes on link click / Escape)
 - Knowledge Base section with technical notes
