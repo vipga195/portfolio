@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portfolio — Nguyen Trung Huy
 
-## Getting Started
+Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + GSAP + Three.js (React Three Fiber).
 
-First, run the development server:
+## Scripts
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev     # http://localhost:3000
+npm run lint
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+  app/            layout, page, globals.css
+  components/     Header, Hero (GSAP intro), HeroScene (Three.js particles), Section (ScrollTrigger reveal)
+  data/profile.ts all content (profile, skills, projects, experience)
+.github/workflows/ci.yml   lint + typecheck + build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Content is edited only in `src/data/profile.ts`.
 
-## Learn More
+## Done
 
-To learn more about Next.js, take a look at the following resources:
+- Sections: Hero, About, Skills, Featured Work, Experience, Contact
+- Three.js particle background (client-only), GSAP intro and scroll reveal (respects `prefers-reduced-motion`)
+- GitHub Actions CI
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## TODO
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [ ] Update real GitHub / LinkedIn links in `profile.ts`
+- [ ] Add `public/cv.pdf`
+- [ ] Rewrite project summaries as case studies (problem -> solution -> result), check NDA first
+- [ ] Add screenshots / videos for projects
+- [ ] Move content to Contentful
+- [ ] i18n (EN / JA)
+- [ ] Side projects section (Contentful extension, fullstack app, animation lab)
+- [ ] Deploy to Vercel, Lighthouse CI
