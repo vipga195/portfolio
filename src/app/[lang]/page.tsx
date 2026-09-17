@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import HeroBackground from "@/components/HeroBackground";
+import LazyVideo from "@/components/LazyVideo";
 import Loader from "@/components/Loader";
 import Section from "@/components/Section";
 import SmoothScroll from "@/components/SmoothScroll";
@@ -66,16 +67,11 @@ export default async function Home({ params }: PageProps<"/[lang]">): Promise<Re
                   {media && (
                     <div className="relative mb-6 aspect-video overflow-hidden rounded-xl bg-neutral-900">
                       {media.type === "video" ? (
-                        <video
+                        <LazyVideo
                           src={media.src}
                           poster={media.poster}
-                          aria-label={media.alt[lang]}
+                          label={media.alt[lang]}
                           className="h-full w-full object-cover"
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          preload="none"
                         />
                       ) : (
                         <Image

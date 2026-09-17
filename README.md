@@ -63,7 +63,7 @@ Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTri
 - Mobile drawer menu under the existing header: hamburger morphs into a close icon; drawer slides + fades in from the right, 85vw wide, full height; locks page scroll while open (pauses ScrollSmoother, or `overflow: hidden` under reduced motion); closes on overlay / link click / Escape
 - Text colors meet WCAG AA contrast (4.5:1) on the dark background
 - Knowledge Base section with technical notes
-- Featured Work cards support optional metrics and image/video demo (`metrics`, `media` with optional `poster` in `Project`)
+- Featured Work cards support optional metrics and image/video demo (`metrics`, `media` with optional `poster` in `Project`); videos and posters lazy-load via `IntersectionObserver` (`LazyVideo`), images use `next/image` default lazy loading
 - Custom favicon (`src/app/icon.svg`, `favicon.ico`, `apple-icon.png`)
 - All content lives in [`src/data/profile.ts`](src/data/profile.ts) (localized fields), UI strings in [`src/i18n/dictionary.ts`](src/i18n/dictionary.ts)
 - GitHub Actions CI: lint, typecheck, build, publish Docker image to GHCR
