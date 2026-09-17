@@ -170,6 +170,28 @@ export const PROJECTS: Project[] = [
       alt: { en: "DeNA Alumni top page", ja: "DeNA Alumni トップページ", vi: "Trang chủ DeNA Alumni" },
     },
   },
+  {
+    name: "DeNA Games Tokyo",
+    url: "https://denagames-tokyo.com",
+    summary: {
+      en: "Corporate and recruiting site for DeNA Games Tokyo, the game operations company behind titles such as Pokémon Masters.",
+      ja: "『ポケモンマスターズ』などのゲーム運営を手がける DeNA Games Tokyo のコーポレート・採用サイト。",
+      vi: "Website doanh nghiệp và tuyển dụng của DeNA Games Tokyo, công ty vận hành các tựa game như Pokémon Masters.",
+    },
+    role: {
+      en: "Development, maintenance, QC and CI/CD",
+      ja: "開発・保守・QC・CI/CD",
+      vi: "Phát triển, bảo trì, QC và CI/CD",
+    },
+    teamSize: 3,
+    stack: ["Next.js", "GSAP", "GitHub Actions"],
+    media: {
+      type: "video",
+      src: "/projects/denagames-tokyo.mp4",
+      poster: "/projects/denagames-tokyo-poster.jpg",
+      alt: { en: "DeNA Games Tokyo site scroll demo", ja: "DeNA Games Tokyo サイトのスクロールデモ", vi: "Demo cuộn trang website DeNA Games Tokyo" },
+    },
+  },
 ];
 
 export const EXPERIENCES: Experience[] = [

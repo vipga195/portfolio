@@ -27,6 +27,7 @@ Front-End Developer with **7+ years of experience** building complex web experie
 | [Wonderia](https://wonderia.jp) | Develop and maintain | 2 | Vite, Three.js, GSAP |
 | [DeNA AI Link](https://dena-ailink.com) | Develop and maintain | 2 | Next.js, Contentful |
 | [DeNA Alumni](https://alumni.dena.com) | Develop and maintain | 3 | Nuxt.js |
+| [DeNA Games Tokyo](https://denagames-tokyo.com) | Development, maintenance, QC and CI/CD | 3 | Next.js, GSAP, GitHub Actions |
 
 ## Experience
 
@@ -92,7 +93,7 @@ Requires repo variable `DEPLOY_URL` and secret `DEPLOY_SECRET`; the `deploy` job
 - [x] Skills: SEO, Accessibility, Performance Tuning
 - [x] LinkedIn URL (`PROFILE.linkedin`)
 - [ ] Metrics (Core Web Vitals, performance) for DeNA, GO Inc., Wonderia — rendering ready, data pending
-- [x] Thumbnails / demo videos for Featured Work (`public/projects/`: MP4 + poster for DeNA, GO Inc., Wonderia; WebP for DeNA AI Link, DeNA Alumni)
+- [x] Thumbnails / demo videos for Featured Work (`public/projects/`: MP4 + poster for DeNA, GO Inc., Wonderia; WebP for DeNA AI Link, DeNA Alumni; MP4 + poster for DeNA Games Tokyo)
 
 - [ ] Case studies with screenshots (problem → solution → result)
 - [ ] Full Knowledge Base articles (detail pages)
