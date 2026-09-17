@@ -150,7 +150,7 @@ export const PROJECTS: Project[] = [
     media: {
       type: "video",
       src: "/projects/dena-ailink.mp4",
-      poster: "/projects/dena-ailink.webp",
+      poster: "/projects/dena-ailink-poster.jpg",
       alt: { en: "DeNA AI Link site scroll demo", ja: "DeNA AI Link サイトのスクロールデモ", vi: "Demo cuộn trang website DeNA AI Link" },
     },
   },
@@ -168,7 +168,7 @@ export const PROJECTS: Project[] = [
     media: {
       type: "video",
       src: "/projects/dena-alumni.mp4",
-      poster: "/projects/dena-alumni.webp",
+      poster: "/projects/dena-alumni-poster.jpg",
       alt: { en: "DeNA Alumni site scroll demo", ja: "DeNA Alumni サイトのスクロールデモ", vi: "Demo cuộn trang website DeNA Alumni" },
     },
   },
