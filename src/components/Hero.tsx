@@ -1,13 +1,10 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
 import { PROFILE } from "@/data/profile";
-
-const HeroScene = dynamic(() => import("./HeroScene"), { ssr: false });
 
 export default function Hero(): React.JSX.Element {
   const container = useRef<HTMLElement>(null);
@@ -22,10 +19,7 @@ export default function Hero(): React.JSX.Element {
   );
 
   return (
-    <section ref={container} className="relative flex min-h-svh items-center overflow-hidden">
-      <div className="absolute inset-0 -z-10 opacity-70">
-        <HeroScene />
-      </div>
+    <section ref={container} id="hero" className="relative flex min-h-svh items-center overflow-hidden">
       <div className="mx-auto w-full max-w-5xl px-6">
         <p className="hero-item font-mono text-sm text-blue-400">Hi, I&apos;m</p>
         <h1 className="hero-item mt-2 text-5xl font-bold tracking-tight md:text-7xl">{PROFILE.name}</h1>

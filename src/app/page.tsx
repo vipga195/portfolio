@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import HeroBackground from "@/components/HeroBackground";
 import Section from "@/components/Section";
 import SmoothScroll from "@/components/SmoothScroll";
 import { EXPERIENCES, KNOWLEDGE_BASE, PROFILE, PROJECTS, SKILLS } from "@/data/profile";
@@ -145,6 +146,7 @@ export default function Home(): React.JSX.Element {
           © {new Date().getFullYear()} {PROFILE.name}
         </footer>
       </SmoothScroll>
+      <HeroBackground />
     </>
   );
 }

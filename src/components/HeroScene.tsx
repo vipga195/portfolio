@@ -29,8 +29,17 @@ function createPositions(): Float32Array {
 
 const POSITIONS = createPositions();
 
-export default function HeroScene(): React.JSX.Element {
+type HeroSceneProps = {
+  paused?: boolean;
+};
+
+export default function HeroScene({ paused = false }: HeroSceneProps): React.JSX.Element {
   const container = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(paused);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   useEffect(() => {
     const el = container.current;
@@ -71,6 +80,7 @@ export default function HeroScene(): React.JSX.Element {
     timer.connect(document);
     renderer.setAnimationLoop((timestamp) => {
       timer.update(timestamp);
+      if (pausedRef.current) return;
       points.rotation.y += timer.getDelta() * 0.08;
       points.rotation.x = pointerY * 0.2;
       renderer.render(scene, camera);
