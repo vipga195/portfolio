@@ -67,6 +67,7 @@ export default async function Home({ params }: PageProps<"/[lang]">): Promise<Re
                       {media.type === "video" ? (
                         <video
                           src={media.src}
+                          poster={media.poster}
                           aria-label={media.alt[lang]}
                           className="h-full w-full object-cover"
                           autoPlay

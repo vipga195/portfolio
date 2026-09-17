@@ -13,6 +13,7 @@ export type ProjectMetric = {
 export type ProjectMedia = {
   type: "image" | "video";
   src: string;
+  poster?: string;
   alt: Localized;
 };
 
@@ -92,6 +93,12 @@ export const PROJECTS: Project[] = [
     role: DEVELOP_AND_MAINTAIN,
     teamSize: 8,
     stack: ["Next.js", "Contentful", "GSAP", "GitHub Actions"],
+    media: {
+      type: "video",
+      src: "/projects/dena.mp4",
+      poster: "/projects/dena-poster.jpg",
+      alt: { en: "DeNA corporate site scroll demo", ja: "DeNA コーポレートサイトのスクロールデモ", vi: "Demo cuộn trang website DeNA" },
+    },
   },
   {
     name: "GO Inc.",
@@ -104,6 +111,12 @@ export const PROJECTS: Project[] = [
     role: DEVELOP_AND_MAINTAIN,
     teamSize: 5,
     stack: ["Next.js", "GSAP"],
+    media: {
+      type: "video",
+      src: "/projects/go.mp4",
+      poster: "/projects/go-poster.jpg",
+      alt: { en: "GO Inc. site scroll animation demo", ja: "GO株式会社 サイトのスクロールアニメーションデモ", vi: "Demo animation khi cuộn website GO Inc." },
+    },
   },
   {
     name: "Wonderia",
@@ -116,6 +129,12 @@ export const PROJECTS: Project[] = [
     role: DEVELOP_AND_MAINTAIN,
     teamSize: 2,
     stack: ["Vite", "Three.js", "GSAP"],
+    media: {
+      type: "video",
+      src: "/projects/wonderia.mp4",
+      poster: "/projects/wonderia-poster.jpg",
+      alt: { en: "Wonderia site interaction demo", ja: "Wonderia サイトのインタラクションデモ", vi: "Demo tương tác website Wonderia" },
+    },
   },
   {
     name: "DeNA AI Link",
@@ -128,10 +147,15 @@ export const PROJECTS: Project[] = [
     role: DEVELOP_AND_MAINTAIN,
     teamSize: 2,
     stack: ["Next.js", "Contentful"],
+    media: {
+      type: "image",
+      src: "/projects/dena-ailink.webp",
+      alt: { en: "DeNA AI Link top page", ja: "DeNA AI Link トップページ", vi: "Trang chủ DeNA AI Link" },
+    },
   },
   {
     name: "DeNA Alumni",
-    url: "https://alumi.dena.com",
+    url: "https://alumni.dena.com",
     summary: {
       en: "Alumni community site for DeNA.",
       ja: "DeNA のアルムナイ（退職者）コミュニティサイト。",
@@ -140,6 +164,11 @@ export const PROJECTS: Project[] = [
     role: DEVELOP_AND_MAINTAIN,
     teamSize: 3,
     stack: ["Nuxt.js"],
+    media: {
+      type: "image",
+      src: "/projects/dena-alumni.webp",
+      alt: { en: "DeNA Alumni top page", ja: "DeNA Alumni トップページ", vi: "Trang chủ DeNA Alumni" },
+    },
   },
 ];
 

@@ -26,7 +26,7 @@ Front-End Developer with **7+ years of experience** building complex web experie
 | [GO Inc.](https://go.goinc.jp) | Develop and maintain | 5 | Next.js, GSAP |
 | [Wonderia](https://wonderia.jp) | Develop and maintain | 2 | Vite, Three.js, GSAP |
 | [DeNA AI Link](https://dena-ailink.com) | Develop and maintain | 2 | Next.js, Contentful |
-| [DeNA Alumni](https://alumi.dena.com) | Develop and maintain | 3 | Nuxt.js |
+| [DeNA Alumni](https://alumni.dena.com) | Develop and maintain | 3 | Nuxt.js |
 
 ## Experience
 
@@ -61,7 +61,7 @@ Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTri
 - Mobile drawer menu under the existing header: hamburger morphs into a close icon; drawer slides + fades in from the right, 85vw wide, full height; locks page scroll while open (pauses ScrollSmoother, or `overflow: hidden` under reduced motion); closes on overlay / link click / Escape
 - Text colors meet WCAG AA contrast (4.5:1) on the dark background
 - Knowledge Base section with technical notes
-- Featured Work cards support optional metrics and image/video demo (`metrics`, `media` in `Project`)
+- Featured Work cards support optional metrics and image/video demo (`metrics`, `media` with optional `poster` in `Project`)
 - Custom favicon (`src/app/icon.svg`, `favicon.ico`, `apple-icon.png`)
 - All content lives in [`src/data/profile.ts`](src/data/profile.ts) (localized fields), UI strings in [`src/i18n/dictionary.ts`](src/i18n/dictionary.ts)
 - GitHub Actions CI: lint, typecheck, build, publish Docker image to GHCR
@@ -92,7 +92,7 @@ Requires repo variable `DEPLOY_URL` and secret `DEPLOY_SECRET`; the `deploy` job
 - [x] Skills: SEO, Accessibility, Performance Tuning
 - [x] LinkedIn URL (`PROFILE.linkedin`)
 - [ ] Metrics (Core Web Vitals, performance) for DeNA, GO Inc., Wonderia — rendering ready, data pending
-- [ ] Thumbnails / demo videos for Featured Work — rendering ready, assets pending
+- [x] Thumbnails / demo videos for Featured Work (`public/projects/`: MP4 + poster for DeNA, GO Inc., Wonderia; WebP for DeNA AI Link, DeNA Alumni)
 
 - [ ] Case studies with screenshots (problem → solution → result)
 - [ ] Full Knowledge Base articles (detail pages)
