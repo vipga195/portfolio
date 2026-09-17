@@ -93,7 +93,7 @@ Requires repo variable `DEPLOY_URL` and secret `DEPLOY_SECRET`; the `deploy` job
 - [x] Skills: SEO, Accessibility, Performance Tuning
 - [x] LinkedIn URL (`PROFILE.linkedin`)
 - [ ] Metrics (Core Web Vitals, performance) for DeNA, GO Inc., Wonderia — rendering ready, data pending
-- [x] Thumbnails / demo videos for Featured Work (`public/projects/`: MP4 + poster for DeNA, GO Inc., Wonderia; WebP for DeNA AI Link, DeNA Alumni; MP4 + poster for DeNA Games Tokyo)
+- [x] Thumbnails / demo videos for Featured Work (`public/projects/`: MP4 + poster for DeNA, GO Inc., Wonderia, DeNA AI Link, DeNA Alumni, DeNA Games Tokyo; MP4 tracked with Git LFS)
 
 - [ ] Case studies with screenshots (problem → solution → result)
 - [ ] Full Knowledge Base articles (detail pages)

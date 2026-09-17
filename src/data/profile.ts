@@ -148,9 +148,10 @@ export const PROJECTS: Project[] = [
     teamSize: 2,
     stack: ["Next.js", "Contentful"],
     media: {
-      type: "image",
-      src: "/projects/dena-ailink.webp",
-      alt: { en: "DeNA AI Link top page", ja: "DeNA AI Link トップページ", vi: "Trang chủ DeNA AI Link" },
+      type: "video",
+      src: "/projects/dena-ailink.mp4",
+      poster: "/projects/dena-ailink.webp",
+      alt: { en: "DeNA AI Link site scroll demo", ja: "DeNA AI Link サイトのスクロールデモ", vi: "Demo cuộn trang website DeNA AI Link" },
     },
   },
   {
@@ -165,9 +166,10 @@ export const PROJECTS: Project[] = [
     teamSize: 3,
     stack: ["Nuxt.js"],
     media: {
-      type: "image",
-      src: "/projects/dena-alumni.webp",
-      alt: { en: "DeNA Alumni top page", ja: "DeNA Alumni トップページ", vi: "Trang chủ DeNA Alumni" },
+      type: "video",
+      src: "/projects/dena-alumni.mp4",
+      poster: "/projects/dena-alumni.webp",
+      alt: { en: "DeNA Alumni site scroll demo", ja: "DeNA Alumni サイトのスクロールデモ", vi: "Demo cuộn trang website DeNA Alumni" },
     },
   },
   {
