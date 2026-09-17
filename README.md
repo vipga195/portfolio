@@ -58,7 +58,7 @@ Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTri
 - Three.js signature hero: particles assemble into the "H." monogram with idle wave/sway and pointer repulsion, GSAP intro and scroll reveal (`prefers-reduced-motion`: no intro, softer idle motion)
 - English (default, `/`), Japanese (`/ja`), Vietnamese (`/vi`) with static generation, hreflang alternates and language dropdown on desktop, language options inside the mobile menu (client-side navigation via `next/link`); `/en` redirects to `/`
 - Smooth scrolling with GSAP ScrollSmoother, including anchor navigation
-- Mobile drawer menu: slides + fades in from the left, 85vw wide, full height; closes on overlay / link click / Escape
+- Mobile drawer menu under the existing header: hamburger morphs into a close icon; drawer slides + fades in from the right, 85vw wide, full height; locks page scroll while open (pauses ScrollSmoother, or `overflow: hidden` under reduced motion); closes on overlay / link click / Escape
 - Text colors meet WCAG AA contrast (4.5:1) on the dark background
 - Knowledge Base section with technical notes
 - Featured Work cards support optional metrics and image/video demo (`metrics`, `media` in `Project`)

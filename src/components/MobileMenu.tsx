@@ -1,5 +1,6 @@
 "use client";
 
+import { ScrollSmoother } from "gsap/ScrollSmoother";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
@@ -21,7 +22,6 @@ function subscribe(): () => void {
 export default function MobileMenu({ items, label, closeLabel, lang, languageLabel }: MobileMenuProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
-  const closeButton = useRef<HTMLButtonElement>(null);
   const isClient = useSyncExternalStore(
     subscribe,
     () => true,
@@ -30,57 +30,49 @@ export default function MobileMenu({ items, label, closeLabel, lang, languageLab
 
   useEffect(() => {
     if (!open) return;
-    closeButton.current?.focus();
+
+    // Lock page scroll: ScrollSmoother intercepts wheel/touch, so pause it; without it (reduced motion) use overflow
+    const smoother = ScrollSmoother.get();
+    const root = document.documentElement;
+    if (smoother) smoother.paused(true);
+    else root.style.overflow = "hidden";
+
     const onKeyDown = (e: KeyboardEvent): void => {
       if (e.key !== "Escape") return;
       setOpen(false);
       toggle.current?.focus();
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      if (smoother) smoother.paused(false);
+      else root.style.overflow = "";
+    };
   }, [open]);
 
   const close = (): void => setOpen(false);
 
   // Reduced motion keeps the fade but shortens the slide to 2rem
   // Rendered in body: the header's backdrop-filter would otherwise contain a fixed-position drawer
+  // Stacked below the header (z-50) so the header toggle stays visible and acts as the close button
   const drawer = (
     <div className="md:hidden">
       <div
         aria-hidden
         onClick={close}
-        className={`fixed inset-0 z-60 bg-black/60 transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 bg-black/60 transition-opacity duration-300 ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
-      <div
+      <nav
         id="mobile-menu"
-        role="dialog"
-        aria-modal="true"
         aria-label={label}
         inert={!open}
-        className={`fixed inset-y-0 left-0 z-70 flex h-dvh w-[85vw] flex-col border-r border-white/5 bg-neutral-950 px-6 py-4 transition-[translate,opacity,visibility] duration-300 ease-out ${
-          open ? "visible translate-x-0 opacity-100" : "invisible -translate-x-full opacity-0 motion-reduce:-translate-x-8"
+        className={`fixed inset-y-0 right-0 z-40 flex h-dvh w-[85vw] flex-col border-l border-white/5 bg-neutral-950 px-6 pt-20 pb-4 transition-[translate,opacity,visibility] duration-300 ease-out ${
+          open ? "visible translate-x-0 opacity-100" : "invisible translate-x-full opacity-0 motion-reduce:translate-x-8"
         }`}
       >
-        <div className="flex h-8 items-center justify-between">
-          <span className="font-mono font-bold text-blue-400">huy.dev</span>
-          <button
-            ref={closeButton}
-            type="button"
-            aria-label={closeLabel}
-            onClick={() => {
-              close();
-              toggle.current?.focus();
-            }}
-            className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-white/5"
-          >
-            <svg aria-hidden viewBox="0 0 16 16" className="h-4 w-4">
-              <path d="m3 3 10 10M13 3 3 13" stroke="currentColor" strokeWidth="1.5" />
-            </svg>
-          </button>
-        </div>
-        <ul className="mt-8 flex-1 overflow-y-auto">
+        <ul className="flex-1 overflow-y-auto">
           {items.map(({ href, label: itemLabel }) => (
             <li key={href}>
               <a href={href} onClick={close} className="block py-3 text-lg text-neutral-200 hover:text-white">
@@ -111,7 +103,7 @@ export default function MobileMenu({ items, label, closeLabel, lang, languageLab
             ))}
           </ul>
         </div>
-      </div>
+      </nav>
     </div>
   );
 
@@ -120,15 +112,19 @@ export default function MobileMenu({ items, label, closeLabel, lang, languageLab
       <button
         ref={toggle}
         type="button"
-        aria-label={label}
+        aria-label={open ? closeLabel : label}
         aria-expanded={open}
         aria-controls="mobile-menu"
-        onClick={() => setOpen(true)}
+        onClick={() => setOpen((prev) => !prev)}
         className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-full hover:bg-white/5"
       >
-        <span className="h-0.5 w-5 bg-neutral-200" />
-        <span className="h-0.5 w-5 bg-neutral-200" />
-        <span className="h-0.5 w-5 bg-neutral-200" />
+        <span
+          className={`h-0.5 w-5 bg-neutral-200 transition-[translate,rotate] duration-300 ${open ? "translate-y-2 rotate-45" : ""}`}
+        />
+        <span className={`h-0.5 w-5 bg-neutral-200 transition-opacity duration-300 ${open ? "opacity-0" : ""}`} />
+        <span
+          className={`h-0.5 w-5 bg-neutral-200 transition-[translate,rotate] duration-300 ${open ? "-translate-y-2 -rotate-45" : ""}`}
+        />
       </button>
       {isClient && createPortal(drawer, document.body)}
     </div>
