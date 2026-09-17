@@ -59,7 +59,7 @@ export const PROFILE = {
   } satisfies Localized,
   email: "trunghuy1701@gmail.com",
   github: "https://github.com/vipga195",
-  linkedin: "",
+  linkedin: "https://www.linkedin.com/in/huy-nguyen-trung-950b02437/",
   cvUrl: "/CV_NGUYEN_TRUNG_HUY_FRONTEND_ATS.pdf",
 };
 

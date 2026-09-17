@@ -89,7 +89,7 @@ Requires repo variable `DEPLOY_URL` and secret `DEPLOY_SECRET`; the `deploy` job
 
 - [x] Real GitHub link, LinkedIn button hidden until a URL is set
 - [x] Skills: SEO, Accessibility, Performance Tuning
-- [ ] LinkedIn URL (`PROFILE.linkedin`)
+- [x] LinkedIn URL (`PROFILE.linkedin`)
 - [ ] Metrics (Core Web Vitals, performance) for DeNA, GO Inc., Wonderia — rendering ready, data pending
 - [ ] Thumbnails / demo videos for Featured Work — rendering ready, assets pending
 
