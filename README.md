@@ -76,7 +76,9 @@ docker compose down
 
 ### Auto deploy
 
-Push to `main` -> CI (lint, typecheck, build) -> image `ghcr.io/vipga195/portfolio:latest` (linux/arm64) -> Watchtower on the host polls every 60s and restarts the `portfolio` container with the new image.
+Push to `main` -> CI (lint, typecheck, build) -> image `ghcr.io/vipga195/portfolio:latest` (linux/arm64) -> signed webhook to [deploy-hook](../../deploy-hook) -> `docker compose pull && up -d`.
+
+Requires repo variable `DEPLOY_URL` and secret `DEPLOY_SECRET`; the `deploy` job is skipped until they are set.
 
 ### Roadmap
 

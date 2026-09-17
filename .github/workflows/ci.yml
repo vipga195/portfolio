@@ -45,3 +45,21 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deploy webhook
+        env:
+          DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+          DEPLOY_PROJECT: ${{ vars.DEPLOY_PROJECT || github.event.repository.name }}
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
+        run: |
+          body=$(printf '{"timestamp":%s,"sha":"%s","ref":"%s"}' "$(date +%s)" "$GITHUB_SHA" "$GITHUB_REF")
+          sig="sha256=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$DEPLOY_SECRET" -hex | sed 's/^.* //')"
+          curl -fsS -X POST "$DEPLOY_URL/deploy/$DEPLOY_PROJECT" \
+            -H "Content-Type: application/json" \
+            -H "X-Hub-Signature-256: $sig" \
+            --data "$body"
