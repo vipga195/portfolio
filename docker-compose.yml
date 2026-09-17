@@ -1,0 +1,21 @@
+services:
+  portfolio:
+    build: .
+    image: ghcr.io/vipga195/portfolio:latest
+    container_name: portfolio
+    ports:
+      - "1995:3000"
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  watchtower:
+    image: nickfedor/watchtower:latest
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_POLL_INTERVAL=60
+      - WATCHTOWER_CLEANUP=true
+    restart: unless-stopped

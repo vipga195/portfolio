@@ -58,7 +58,7 @@ Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTri
 - Smooth scrolling with GSAP ScrollSmoother, including anchor navigation
 - Knowledge Base section with technical notes
 - All content lives in [`src/data/profile.ts`](src/data/profile.ts)
-- GitHub Actions CI: lint, typecheck, build
+- GitHub Actions CI: lint, typecheck, build, publish Docker image to GHCR
 
 ### Run locally
 
@@ -66,6 +66,17 @@ Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTri
 npm install
 npm run dev
 ```
+
+### Run with Docker
+
+```bash
+docker compose up -d --build   # http://localhost:1995
+docker compose down
+```
+
+### Auto deploy
+
+Push to `main` -> CI (lint, typecheck, build) -> image `ghcr.io/vipga195/portfolio:latest` (linux/arm64) -> Watchtower on the host polls every 60s and restarts the `portfolio` container with the new image.
 
 ### Roadmap
 
