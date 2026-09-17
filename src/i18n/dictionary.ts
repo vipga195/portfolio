@@ -9,6 +9,7 @@ export type Dictionary = {
   contactText: string;
   languageLabel: string;
   menuLabel: string;
+  closeMenuLabel: string;
 };
 
 export const DICTIONARIES: Localized<Dictionary> = {
@@ -39,6 +40,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
     contactText: "Open to Front-End / Fullstack opportunities. Feel free to reach out.",
     languageLabel: "Language",
     menuLabel: "Menu",
+    closeMenuLabel: "Close menu",
   },
   ja: {
     meta: {
@@ -67,6 +69,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
     contactText: "フロントエンド／フルスタックのポジションを歓迎しています。お気軽にご連絡ください。",
     languageLabel: "言語",
     menuLabel: "メニュー",
+    closeMenuLabel: "メニューを閉じる",
   },
   vi: {
     meta: {
@@ -95,5 +98,6 @@ export const DICTIONARIES: Localized<Dictionary> = {
     contactText: "Sẵn sàng cho các cơ hội Front-End / Fullstack. Hãy liên hệ với tôi.",
     languageLabel: "Ngôn ngữ",
     menuLabel: "Menu",
+    closeMenuLabel: "Đóng menu",
   },
 };

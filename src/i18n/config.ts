@@ -8,6 +8,8 @@ export const DEFAULT_LOCALE: Locale = "en";
 
 export const LOCALE_LABELS: Localized = { en: "EN", ja: "JA", vi: "VI" };
 
+export const LOCALE_NAMES: Localized = { en: "English", ja: "日本語", vi: "Tiếng Việt" };
+
 export function hasLocale(value: string): value is Locale {
   return LOCALES.some((locale) => locale === value);
 }

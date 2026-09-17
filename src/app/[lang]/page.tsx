@@ -29,7 +29,13 @@ export default async function Home({ params }: PageProps<"/[lang]">): Promise<Re
 
   return (
     <>
-      <Header lang={lang} nav={dict.nav} languageLabel={dict.languageLabel} menuLabel={dict.menuLabel} />
+      <Header
+        lang={lang}
+        nav={dict.nav}
+        languageLabel={dict.languageLabel}
+        menuLabel={dict.menuLabel}
+        closeMenuLabel={dict.closeMenuLabel}
+      />
       <SmoothScroll>
         <main>
           <Hero lang={lang} labels={dict.hero} />

@@ -1,8 +1,7 @@
-import Link from "next/link";
-
-import { LOCALES, LOCALE_LABELS, localePath, type Locale } from "@/i18n/config";
+import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 
+import LanguageSwitcher from "./LanguageSwitcher";
 import MobileMenu from "./MobileMenu";
 
 type HeaderProps = {
@@ -10,9 +9,10 @@ type HeaderProps = {
   nav: Dictionary["nav"];
   languageLabel: string;
   menuLabel: string;
+  closeMenuLabel: string;
 };
 
-export default function Header({ lang, nav, languageLabel, menuLabel }: HeaderProps): React.JSX.Element {
+export default function Header({ lang, nav, languageLabel, menuLabel, closeMenuLabel }: HeaderProps): React.JSX.Element {
   const navItems = [
     { href: "#about", label: nav.about },
     { href: "#skills", label: nav.skills },
@@ -38,24 +38,14 @@ export default function Header({ lang, nav, languageLabel, menuLabel }: HeaderPr
               </li>
             ))}
           </ul>
-          <ul aria-label={languageLabel} className="flex gap-1 font-mono text-xs">
-            {LOCALES.map((locale) => (
-              <li key={locale}>
-                <Link
-                  href={localePath(locale)}
-                  hrefLang={locale}
-                  lang={locale}
-                  aria-current={locale === lang ? "true" : undefined}
-                  className={`rounded-full px-2 py-1 ${
-                    locale === lang ? "bg-blue-600 text-white" : "text-neutral-400 hover:text-white"
-                  }`}
-                >
-                  {LOCALE_LABELS[locale]}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <MobileMenu items={navItems} label={menuLabel} />
+          <LanguageSwitcher lang={lang} label={languageLabel} />
+          <MobileMenu
+            items={navItems}
+            label={menuLabel}
+            closeLabel={closeMenuLabel}
+            lang={lang}
+            languageLabel={languageLabel}
+          />
         </div>
       </nav>
     </header>
