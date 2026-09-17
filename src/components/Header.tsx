@@ -47,7 +47,7 @@ export default function Header({ lang, nav, languageLabel, menuLabel }: HeaderPr
                   lang={locale}
                   aria-current={locale === lang ? "true" : undefined}
                   className={`rounded-full px-2 py-1 ${
-                    locale === lang ? "bg-blue-500 text-white" : "text-neutral-400 hover:text-white"
+                    locale === lang ? "bg-blue-600 text-white" : "text-neutral-400 hover:text-white"
                   }`}
                 >
                   {LOCALE_LABELS[locale]}

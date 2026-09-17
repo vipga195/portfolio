@@ -59,6 +59,7 @@ Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTri
 - English (default, `/`), Japanese (`/ja`), Vietnamese (`/vi`) with static generation, hreflang alternates and header language switcher (client-side navigation via `next/link`); `/en` redirects to `/`
 - Smooth scrolling with GSAP ScrollSmoother, including anchor navigation
 - Mobile hamburger menu (closes on link click / Escape)
+- Text colors meet WCAG AA contrast (4.5:1) on the dark background
 - Knowledge Base section with technical notes
 - Featured Work cards support optional metrics and image/video demo (`metrics`, `media` in `Project`)
 - Custom favicon (`src/app/icon.svg`, `favicon.ico`, `apple-icon.png`)

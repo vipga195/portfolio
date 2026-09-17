@@ -33,7 +33,7 @@ export default function Hero({ lang, labels }: HeroProps): React.JSX.Element {
         <h2 className="hero-item mt-3 text-2xl text-neutral-400 md:text-3xl">{PROFILE.title[lang]}</h2>
         <p className="hero-item mt-6 max-w-xl text-lg text-neutral-300">{PROFILE.tagline[lang]}</p>
         <div className="hero-item mt-8 flex flex-wrap gap-4">
-          <a href="#projects" className="rounded-full bg-blue-500 px-6 py-3 font-medium text-white hover:bg-blue-400">
+          <a href="#projects" className="rounded-full bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700">
             {labels.viewWork}
           </a>
           <a
