@@ -15,6 +15,7 @@ Front-End Developer with **7+ years of experience** building complex web experie
 | Frontend | React, Next.js, Vue.js, Nuxt.js, Vite, React Native, Tailwind CSS, SASS |
 | Animation & 3D | GSAP, Three.js, Animate.js |
 | CMS & Backend | Contentful (custom extensions), Node.js, RESTful API |
+| Quality & Performance | SEO Optimization, Accessibility (a11y), Performance Tuning |
 | Workflow | GitHub Actions, Git, Agile / Scrum |
 
 ## Featured Work
@@ -54,10 +55,14 @@ University of Science (HCMUS) — Information Technology, 2013 – 2016
 
 Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTrigger, ScrollSmoother) and Three.js.
 
-- Three.js particle hero, GSAP intro and scroll reveal (respects `prefers-reduced-motion`)
+- Three.js signature hero: particles assemble into the "H." monogram with idle wave/sway and pointer repulsion, GSAP intro and scroll reveal (`prefers-reduced-motion`: no intro, softer idle motion)
+- English (default, `/`), Japanese (`/ja`), Vietnamese (`/vi`) with static generation, hreflang alternates and header language switcher; `/en` redirects to `/`
 - Smooth scrolling with GSAP ScrollSmoother, including anchor navigation
+- Mobile hamburger menu (closes on link click / Escape)
 - Knowledge Base section with technical notes
-- All content lives in [`src/data/profile.ts`](src/data/profile.ts)
+- Featured Work cards support optional metrics and image/video demo (`metrics`, `media` in `Project`)
+- Custom favicon (`src/app/icon.svg`, `favicon.ico`, `apple-icon.png`)
+- All content lives in [`src/data/profile.ts`](src/data/profile.ts) (localized fields), UI strings in [`src/i18n/dictionary.ts`](src/i18n/dictionary.ts)
 - GitHub Actions CI: lint, typecheck, build, publish Docker image to GHCR
 
 ### Run locally
@@ -82,9 +87,16 @@ Requires repo variable `DEPLOY_URL` and secret `DEPLOY_SECRET`; the `deploy` job
 
 ### Roadmap
 
+- [x] Real GitHub link, LinkedIn button hidden until a URL is set
+- [x] Skills: SEO, Accessibility, Performance Tuning
+- [ ] LinkedIn URL (`PROFILE.linkedin`)
+- [ ] Metrics (Core Web Vitals, performance) for DeNA, GO Inc., Wonderia — rendering ready, data pending
+- [ ] Thumbnails / demo videos for Featured Work — rendering ready, assets pending
+
 - [ ] Case studies with screenshots (problem → solution → result)
 - [ ] Full Knowledge Base articles (detail pages)
 - [ ] Content managed in Contentful
-- [ ] English / Japanese (i18n)
+- [x] English / Japanese / Vietnamese (i18n)
+- [x] Signature hero (particle "H." monogram)
 - [ ] Side projects: Contentful extension, fullstack app, animation lab
 - [ ] Deploy to Vercel with Lighthouse CI
