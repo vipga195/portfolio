@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
 import { PROFILE } from "@/data/profile";
+import { getIntroPhase, subscribeIntro } from "@/lib/intro";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 
@@ -19,7 +20,17 @@ export default function Hero({ lang, labels }: HeroProps): React.JSX.Element {
   useGSAP(
     () => {
       gsap.matchMedia().add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.from(".hero-item", { y: 40, opacity: 0, duration: 0.9, stagger: 0.12, ease: "power3.out" });
+        const tween = gsap.from(".hero-item", {
+          y: 40,
+          opacity: 0,
+          duration: 1.2,
+          stagger: 0.15,
+          ease: "power3.out",
+          paused: getIntroPhase() !== "settled",
+        });
+        return subscribeIntro((phase) => {
+          if (phase === "settled") tween.play();
+        });
       });
     },
     { scope: container },

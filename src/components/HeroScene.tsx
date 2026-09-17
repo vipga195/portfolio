@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -56,6 +56,7 @@ const MAX_TILT = 0.3;
 const TILT_EASE = 3;
 const MAX_DT = 1 / 30;
 const POINT_SIZE_RATIO = 0.012;
+const FULL_SCREEN_FILL = 0.75;
 
 type ParticleData = {
   targets: Float32Array;
@@ -138,11 +139,18 @@ function createDotTexture(): DataTexture {
   return texture;
 }
 
-type HeroSceneProps = {
-  paused?: boolean;
+// Mutated externally: `active` starts the particle intro, `settle` morphs full screen (0) -> final layout (1)
+export type IntroState = {
+  active: boolean;
+  settle: number;
 };
 
-export default function HeroScene({ paused = false }: HeroSceneProps): React.JSX.Element {
+type HeroSceneProps = {
+  paused?: boolean;
+  intro?: RefObject<IntroState>;
+};
+
+export default function HeroScene({ paused = false, intro }: HeroSceneProps): React.JSX.Element {
   const container = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(paused);
 
@@ -183,6 +191,15 @@ export default function HeroScene({ paused = false }: HeroSceneProps): React.JSX
     const points = new Points(geometry, material);
     scene.add(points);
 
+    const layout = { fullScale: 1, finalScale: 1, finalX: 0 };
+    const applyLayout = (): void => {
+      const settle = intro?.current.settle ?? 1;
+      const scale = MathUtils.lerp(layout.fullScale, layout.finalScale, settle);
+      points.scale.setScalar(scale);
+      points.position.x = layout.finalX * settle;
+      material.size = scale * POINT_SIZE_RATIO;
+    };
+
     const resize = (): void => {
       const { clientWidth: width, clientHeight: height } = el;
       renderer.setSize(width, height);
@@ -192,15 +209,14 @@ export default function HeroScene({ paused = false }: HeroSceneProps): React.JSX
       const viewHeight = 2 * CAMERA_Z * Math.tan(MathUtils.degToRad(CAMERA_FOV / 2));
       const viewWidth = viewHeight * camera.aspect;
       if (camera.aspect > 1) {
-        const scale = viewHeight * 0.5;
-        points.scale.setScalar(scale);
-        points.position.x = Math.min(viewWidth * 0.25, viewWidth / 2 - MONOGRAM_HALF_WIDTH * scale - 0.3);
+        layout.finalScale = viewHeight * 0.5;
+        layout.finalX = Math.min(viewWidth * 0.25, viewWidth / 2 - MONOGRAM_HALF_WIDTH * layout.finalScale - 0.3);
       } else {
-        const scale = Math.min(viewHeight * 0.3, (viewWidth * 0.6) / (MONOGRAM_HALF_WIDTH * 2));
-        points.scale.setScalar(scale);
-        points.position.x = 0;
+        layout.finalScale = Math.min(viewHeight * 0.3, (viewWidth * 0.6) / (MONOGRAM_HALF_WIDTH * 2));
+        layout.finalX = 0;
       }
-      material.size = points.scale.x * POINT_SIZE_RATIO;
+      layout.fullScale = Math.min(viewHeight, viewWidth / (MONOGRAM_HALF_WIDTH * 2)) * FULL_SCREEN_FILL;
+      applyLayout();
       renderer.render(scene, camera);
     };
     resize();
@@ -236,7 +252,8 @@ export default function HeroScene({ paused = false }: HeroSceneProps): React.JSX
       if (pausedRef.current) return;
       const dt = Math.min(timer.getDelta(), MAX_DT);
       const elapsed = timer.getElapsed();
-      introTime += dt;
+      if (intro?.current.active ?? true) introTime += dt;
+      applyLayout();
       const progress = Math.min(introTime / INTRO_DURATION, 1);
       const ease = 1 - (1 - progress) ** 3;
 
@@ -302,7 +319,7 @@ export default function HeroScene({ paused = false }: HeroSceneProps): React.JSX
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, []);
+  }, [intro]);
 
   return <div ref={container} className="h-full w-full" />;
 }
