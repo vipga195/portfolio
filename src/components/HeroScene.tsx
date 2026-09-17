@@ -1,8 +1,16 @@
 "use client";
 
-import { useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import type { Points } from "three";
+import { useEffect, useRef } from "react";
+import {
+  BufferAttribute,
+  BufferGeometry,
+  PerspectiveCamera,
+  Points,
+  PointsMaterial,
+  Scene,
+  Timer,
+  WebGLRenderer,
+} from "three";
 
 const PARTICLE_COUNT = 1500;
 
@@ -21,29 +29,64 @@ function createPositions(): Float32Array {
 
 const POSITIONS = createPositions();
 
-function Particles(): React.JSX.Element {
-  const ref = useRef<Points>(null);
-
-  useFrame((state, delta) => {
-    if (!ref.current) return;
-    ref.current.rotation.y += delta * 0.08;
-    ref.current.rotation.x = state.pointer.y * 0.2;
-  });
-
-  return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[POSITIONS, 3]} />
-      </bufferGeometry>
-      <pointsMaterial size={0.02} color="#60a5fa" transparent opacity={0.8} />
-    </points>
-  );
-}
-
 export default function HeroScene(): React.JSX.Element {
-  return (
-    <Canvas camera={{ position: [0, 0, 5], fov: 60 }} dpr={[1, 2]}>
-      <Particles />
-    </Canvas>
-  );
+  const container = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = container.current;
+    if (!el) return;
+
+    const renderer = new WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    el.appendChild(renderer.domElement);
+
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(60, 1, 0.1, 100);
+    camera.position.set(0, 0, 5);
+
+    const geometry = new BufferGeometry();
+    geometry.setAttribute("position", new BufferAttribute(POSITIONS, 3));
+    const material = new PointsMaterial({ size: 0.02, color: "#60a5fa", transparent: true, opacity: 0.8 });
+    const points = new Points(geometry, material);
+    scene.add(points);
+
+    const resize = (): void => {
+      const { clientWidth: width, clientHeight: height } = el;
+      renderer.setSize(width, height);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(el);
+
+    let pointerY = 0;
+    const onPointerMove = (e: PointerEvent): void => {
+      const rect = el.getBoundingClientRect();
+      pointerY = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+    };
+    window.addEventListener("pointermove", onPointerMove);
+
+    const timer = new Timer();
+    timer.connect(document);
+    renderer.setAnimationLoop((timestamp) => {
+      timer.update(timestamp);
+      points.rotation.y += timer.getDelta() * 0.08;
+      points.rotation.x = pointerY * 0.2;
+      renderer.render(scene, camera);
+    });
+
+    return () => {
+      renderer.setAnimationLoop(null);
+      window.removeEventListener("pointermove", onPointerMove);
+      observer.disconnect();
+      timer.dispose();
+      geometry.dispose();
+      material.dispose();
+      renderer.dispose();
+      renderer.domElement.remove();
+    };
+  }, []);
+
+  return <div ref={container} className="h-full w-full" />;
 }
