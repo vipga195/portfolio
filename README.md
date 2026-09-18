@@ -65,6 +65,7 @@ Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTri
 - Knowledge Base section with technical notes
 - Featured Work cards support optional metrics and image/video demo (`metrics`, `media` with optional `poster` in `Project`); videos and posters lazy-load via `IntersectionObserver` (`LazyVideo`), images use `next/image` default lazy loading
 - Custom favicon (`src/app/icon.svg`, `favicon.ico`, `apple-icon.png`)
+- Open Graph / Twitter card: localized `og:title`, `og:description`, `og:locale` (+ alternates) in `generateMetadata`; static 1200x630 OG image per locale in `public/og/{en,ja,vi}.png` (Geist + Noto Sans JP, localized title; no runtime/build-time font download)
 - All content lives in [`src/data/profile.ts`](src/data/profile.ts) (localized fields), UI strings in [`src/i18n/dictionary.ts`](src/i18n/dictionary.ts)
 - GitHub Actions CI: lint, typecheck, build, publish Docker image to GHCR
 
