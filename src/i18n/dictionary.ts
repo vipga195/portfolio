@@ -17,7 +17,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
     meta: {
       title: "Nguyen Trung Huy — Front-End Developer",
       description:
-        "Front-End Developer with 7+ years of experience in React, Next.js, Vue, Nuxt, GSAP and Three.js.",
+        "Front-End Developer with 7+ years of experience building websites for large Japanese clients with React, Next.js, Vue, Nuxt, GSAP and Three.js.",
     },
     nav: {
       about: "About",
@@ -46,7 +46,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
     meta: {
       title: "Nguyen Trung Huy — フロントエンドエンジニア",
       description:
-        "React、Next.js、Vue、Nuxt、GSAP、Three.js を用いた開発経験7年以上のフロントエンドエンジニア。",
+        "React、Next.js、Vue、Nuxt、GSAP、Three.js を用いて、日本の大手クライアント向けにWebサイトの開発・保守を行っている、開発経験7年以上のフロントエンドエンジニア。",
     },
     nav: {
       about: "概要",
@@ -75,7 +75,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
     meta: {
       title: "Nguyễn Trung Huy — Front-End Developer",
       description:
-        "Front-End Developer với hơn 7 năm kinh nghiệm React, Next.js, Vue, Nuxt, GSAP và Three.js.",
+        "Front-End Developer với hơn 7 năm kinh nghiệm xây dựng website cho các khách hàng lớn tại Nhật Bản bằng React, Next.js, Vue, Nuxt, GSAP và Three.js.",
     },
     nav: {
       about: "Giới thiệu",
