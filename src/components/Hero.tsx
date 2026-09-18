@@ -90,9 +90,7 @@ export default function Hero({ lang, labels }: HeroProps): React.JSX.Element {
     <section ref={container} id="hero" className="relative flex min-h-svh items-center overflow-hidden">
       <div className="mx-auto w-full max-w-5xl px-6">
         <p className="hero-greeting font-mono text-sm text-blue-400">{labels.greeting}</p>
-        <h1 className="hero-typed mt-2 text-5xl font-bold tracking-tight md:text-7xl">
-          <TypedText text={PROFILE.name} />
-        </h1>
+        <h1 className="mt-2 text-5xl font-bold tracking-tight md:text-7xl">{PROFILE.name}</h1>
         <h2 className="hero-typed mt-3 text-2xl text-neutral-400 md:text-3xl">
           <TypedText text={PROFILE.title[lang]} />
         </h2>
