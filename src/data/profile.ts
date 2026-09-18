@@ -257,6 +257,52 @@ export const EXPERIENCES: Experience[] = [
     },
     stack: ["React.js", "React Native", "Redux Saga"],
   },
+  {
+    company: "Satra Food & Mon Hue",
+    position: "IT Support Staff",
+    period: { en: "2018 – 2019", ja: "2018年 – 2019年", vi: "2018 – 2019" },
+    highlights: {
+      en: [
+        "On-site IT support for retail store systems: POS, computers, printers and network",
+        "Handled store incidents to keep downtime short",
+        "Troubleshot network and Wi-Fi connectivity at store locations",
+      ],
+      ja: [
+        "店舗システム（POS、PC、プリンター、ネットワーク）のオンサイト IT サポート",
+        "店舗での障害対応によるダウンタイムの最小化",
+        "店舗のネットワーク・Wi-Fi 接続のトラブルシューティング",
+      ],
+      vi: [
+        "Hỗ trợ IT tại cửa hàng cho hệ thống POS, máy tính, máy in và mạng",
+        "Xử lý sự cố tại cửa hàng để giảm thời gian gián đoạn",
+        "Khắc phục sự cố kết nối mạng và Wi-Fi tại các điểm bán",
+      ],
+    },
+    stack: ["POS", "Windows", "Printers", "Networking"],
+  },
+  {
+    company: "Hoang Tin Company",
+    position: "IT Hardware Technician",
+    period: { en: "2016 – 2018", ja: "2016年 – 2018年", vi: "2016 – 2018" },
+    highlights: {
+      en: [
+        "Assembled, installed and configured desktop computers for internal and client use",
+        "Installed and maintained CCTV camera systems",
+        "Set up and maintained printers and other office peripherals",
+      ],
+      ja: [
+        "社内・顧客向けデスクトップ PC の組立、設置、設定",
+        "防犯カメラ（CCTV）システムの設置・保守",
+        "プリンターなどオフィス周辺機器の設置・保守",
+      ],
+      vi: [
+        "Lắp ráp, cài đặt và cấu hình máy tính để bàn cho nội bộ và khách hàng",
+        "Lắp đặt và bảo trì hệ thống camera CCTV",
+        "Cài đặt và bảo trì máy in cùng các thiết bị văn phòng khác",
+      ],
+    },
+    stack: ["PC Assembly", "CCTV", "Printers", "Windows"],
+  },
 ];
 
 export const KNOWLEDGE_BASE: KnowledgeEntry[] = [

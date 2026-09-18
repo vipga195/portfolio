@@ -20,6 +20,8 @@ import {
   WebGLRenderer,
 } from "three";
 
+import { BURST_DURATION } from "@/lib/intro";
+
 const PARTICLE_COUNT = 2400;
 const CAMERA_Z = 5;
 const CAMERA_FOV = 60;
@@ -41,6 +43,12 @@ const COLOR_END = new Color("#8b5cf6");
 const COLOR_DOT = new Color("#fbbf24");
 
 const INTRO_DURATION = 2;
+// Seconds of BURST_DURATION spent flying out; the rest holds particles scattered
+const BURST_FLY = 0.9;
+const BURST_DEPTH = 0.6;
+// Scattered particles are sparse, so enlarge them until they gather back
+const BURST_SIZE = 6;
+const LABEL_RATIO = 0.18;
 const SPRING = 40;
 const DAMPING = 6;
 const REPEL_RADIUS = 0.2;
@@ -62,6 +70,7 @@ type ParticleData = {
   targets: Float32Array;
   starts: Float32Array;
   colors: Float32Array;
+  dotCount: number;
 };
 
 // Positions are local units: monogram height = 1, centered at origin, y up
@@ -120,7 +129,7 @@ function createParticles(): ParticleData {
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
   }
-  return { targets, starts, colors };
+  return { targets, starts, colors, dotCount };
 }
 
 function createDotTexture(): DataTexture {
@@ -139,10 +148,12 @@ function createDotTexture(): DataTexture {
   return texture;
 }
 
-// Mutated externally: `active` starts the particle intro, `settle` morphs full screen (0) -> final layout (1)
+// Mutated externally: `active` starts the particle intro, `settle` morphs full screen (0) -> final layout (1),
+// `burst` is the loader ring radius in px particles explode from (0 = no burst)
 export type IntroState = {
   active: boolean;
   settle: number;
+  burst: number;
 };
 
 type HeroSceneProps = {
@@ -162,8 +173,9 @@ export default function HeroScene({ paused = false, intro }: HeroSceneProps): Re
     const el = container.current;
     if (!el) return;
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const { targets, starts, colors } = createParticles();
+    // TEMP preview: force the intro even with reduced motion (restore the matchMedia check)
+    const reducedMotion = false;
+    const { targets, starts, colors, dotCount } = createParticles();
 
     const renderer = new WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -191,13 +203,13 @@ export default function HeroScene({ paused = false, intro }: HeroSceneProps): Re
     const points = new Points(geometry, material);
     scene.add(points);
 
-    const layout = { fullScale: 1, finalScale: 1, finalX: 0 };
+    const layout = { fullScale: 1, finalScale: 1, finalX: 0, pxToLocal: 1, halfWidth: 1, halfHeight: 1, sizeBoost: 1 };
     const applyLayout = (): void => {
       const settle = intro?.current.settle ?? 1;
       const scale = MathUtils.lerp(layout.fullScale, layout.finalScale, settle);
       points.scale.setScalar(scale);
       points.position.x = layout.finalX * settle;
-      material.size = scale * POINT_SIZE_RATIO;
+      material.size = scale * POINT_SIZE_RATIO * layout.sizeBoost;
     };
 
     const resize = (): void => {
@@ -216,6 +228,9 @@ export default function HeroScene({ paused = false, intro }: HeroSceneProps): Re
         layout.finalX = 0;
       }
       layout.fullScale = Math.min(viewHeight, viewWidth / (MONOGRAM_HALF_WIDTH * 2)) * FULL_SCREEN_FILL;
+      layout.pxToLocal = viewHeight / (height * layout.fullScale);
+      layout.halfWidth = viewWidth / 2 / layout.fullScale;
+      layout.halfHeight = viewHeight / 2 / layout.fullScale;
       applyLayout();
       renderer.render(scene, camera);
     };
@@ -244,6 +259,27 @@ export default function HeroScene({ paused = false, intro }: HeroSceneProps): Re
     // Reduced motion: skip the intro and keep only subtle idle motion and pointer interaction
     const motionScale = reducedMotion ? REDUCED_MOTION_SCALE : 1;
     let introTime = reducedMotion ? INTRO_DURATION : 0;
+    let burstPending = !reducedMotion;
+    let burstDelay = 0;
+    // Where each particle flies out from; equals starts when there is no burst
+    const origins = new Float32Array(starts);
+
+    // Particles fill the loader ring (dot particles sit on the percent label), then scatter across the whole screen
+    const seedBurst = (radiusPx: number): void => {
+      const radius = radiusPx * layout.pxToLocal;
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const i3 = i * 3;
+        const r = radius * (i < dotCount ? LABEL_RATIO : 1) * Math.sqrt(Math.random());
+        const angle = Math.random() * Math.PI * 2;
+        positions[i3] = origins[i3] = Math.cos(angle) * r;
+        positions[i3 + 1] = origins[i3 + 1] = Math.sin(angle) * r;
+        positions[i3 + 2] = origins[i3 + 2] = 0;
+        starts[i3] = (Math.random() * 2 - 1) * layout.halfWidth;
+        starts[i3 + 1] = (Math.random() * 2 - 1) * layout.halfHeight;
+        starts[i3 + 2] = (Math.random() - 0.5) * BURST_DEPTH;
+      }
+      burstDelay = BURST_DURATION;
+    };
 
     const timer = new Timer();
     timer.connect(document);
@@ -252,10 +288,18 @@ export default function HeroScene({ paused = false, intro }: HeroSceneProps): Re
       if (pausedRef.current) return;
       const dt = Math.min(timer.getDelta(), MAX_DT);
       const elapsed = timer.getElapsed();
-      if (intro?.current.active ?? true) introTime += dt;
-      applyLayout();
-      const progress = Math.min(introTime / INTRO_DURATION, 1);
+      const active = intro?.current.active ?? true;
+      if (active && burstPending) {
+        burstPending = false;
+        const burst = intro?.current.burst ?? 0;
+        if (burst > 0) seedBurst(burst);
+      }
+      if (active) introTime += dt;
+      const progress = Math.min(Math.max((introTime - burstDelay) / INTRO_DURATION, 0), 1);
       const ease = 1 - (1 - progress) ** 3;
+      const burstEase = burstDelay > 0 ? 1 - (1 - Math.min(introTime / BURST_FLY, 1)) ** 3 : 1;
+      layout.sizeBoost = burstDelay > 0 ? 1 + (BURST_SIZE - 1) * burstEase * (1 - ease) : 1;
+      applyLayout();
 
       const tiltEase = 1 - Math.exp(-TILT_EASE * dt);
       const swayX = Math.sin(elapsed * IDLE_SWAY_SPEED * 0.7) * IDLE_SWAY * 0.4 * motionScale;
@@ -285,7 +329,8 @@ export default function HeroScene({ paused = false, intro }: HeroSceneProps): Re
           Math.sin(elapsed * WAVE_SPEED - (targets[i3] + targets[i3 + 1]) * WAVE_FREQ) * WAVE_AMP * motionScale * ease;
         for (let axis = 0; axis < 3; axis++) {
           const offset = axis === 1 ? float : axis === 2 ? wave : 0;
-          const home = starts[i3 + axis] + (targets[i3 + axis] - starts[i3 + axis]) * ease + offset;
+          const from = origins[i3 + axis] + (starts[i3 + axis] - origins[i3 + axis]) * burstEase;
+          const home = from + (targets[i3 + axis] - from) * ease + offset;
           velocities[i3 + axis] += (home - positions[i3 + axis]) * SPRING * dt;
         }
         if (repel) {

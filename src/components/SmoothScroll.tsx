@@ -6,6 +6,8 @@ import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 
+import { getIntroPhase, subscribeIntro } from "@/lib/intro";
+
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother, ScrollToPlugin, useGSAP);
 
 // Survives client-side navigation (module scope), used to detect a locale switch on remount
@@ -124,8 +126,24 @@ export default function SmoothScroll({
       window.addEventListener("load", scrollToInitialHash, { once: true });
     }
 
+    // Keep the page still until the intro finishes; normalizeScroll drives scrolling in JS, so pause the smoother
+    const setScrollLocked = (locked: boolean): void => {
+      const smoother = ScrollSmoother.get();
+      if (smoother) smoother.paused(locked);
+      else document.documentElement.style.overflow = locked ? "hidden" : "";
+    };
+    let unsubscribeIntro = (): void => {};
+    if (getIntroPhase() !== "settled") {
+      setScrollLocked(true);
+      unsubscribeIntro = subscribeIntro((phase) => {
+        if (phase === "settled") setScrollLocked(false);
+      });
+    }
+
     document.addEventListener("click", onClick);
     return () => {
+      unsubscribeIntro();
+      setScrollLocked(false);
       document.removeEventListener("click", onClick);
       window.removeEventListener("load", scrollToInitialHash);
     };

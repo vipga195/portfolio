@@ -58,7 +58,7 @@ Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTri
 
 - Three.js signature hero: particles assemble into the "H." monogram with idle wave/sway and pointer repulsion, GSAP intro and scroll reveal (`prefers-reduced-motion`: no intro, softer idle motion)
 - English (default, `/`), Japanese (`/ja`), Vietnamese (`/vi`) with static generation, hreflang alternates and language dropdown on desktop, language options inside the mobile menu (client-side navigation via `next/link`, resets scroll to top on switch); `/en` redirects to `/`
-- Loading screen (first visit only, skipped on locale switch): a centered ring where canvas water first surges in from the left, bounces off the right wall, then rises with sloshing waves while the percent follows the water level; fades out when full; the particle monogram forms full screen, slowly shrinks into its hero position, then the hero text reveals (shared phase store in `src/lib/intro.ts`)
+- Loading screen (first visit only, skipped on locale switch): a centered ring where canvas water first surges in from the left, bounces off the right wall, then rises with sloshing waves while the percent follows the water level (ring/water use the H gradient, percent uses the dot amber); when full the ring pops and its particles burst from the same spot and scatter across the whole screen; the particle canvas is lifted above the loader black backdrop so the page stays hidden while they scatter, then they gather as the backdrop fades and the canvas drops back behind the page into the full-screen monogram, slowly shrinks into its hero position, then the hero text reveals (shared phase store in `src/lib/intro.ts`); page scroll stays locked until the intro settles (`ScrollSmoother.paused`, or `overflow: hidden` on `<html>` when reduced motion disables the smoother)
 - Smooth scrolling with GSAP ScrollSmoother, including anchor navigation
 - Mobile drawer menu under the existing header: hamburger morphs into a close icon; drawer slides + fades in from the right, 85vw wide, full height; locks page scroll while open (pauses ScrollSmoother, or `overflow: hidden` under reduced motion); closes on overlay / link click / Escape
 - Text colors meet WCAG AA contrast (4.5:1) on the dark background
@@ -96,7 +96,6 @@ Requires repo variable `DEPLOY_URL` and secret `DEPLOY_SECRET`; the `deploy` job
 - [ ] Metrics (Core Web Vitals, performance) for DeNA, GO Inc., Wonderia — rendering ready, data pending
 - [x] Thumbnails / demo videos for Featured Work (`public/projects/`: MP4 + poster for DeNA, GO Inc., Wonderia, DeNA AI Link, DeNA Alumni, DeNA Games Tokyo; MP4 tracked with Git LFS)
 
-- [ ] Loading screen: page scroll is not locked while the loader is visible
 - [ ] Light color scheme: `globals.css` body background overrides `bg-neutral-950` (header looks off in light mode)
 - [ ] Case studies with screenshots (problem → solution → result)
 - [ ] Full Knowledge Base articles (detail pages)

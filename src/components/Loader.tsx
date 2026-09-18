@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
-import { getIntroPhase, setIntroPhase } from "@/lib/intro";
+import { BACKDROP_FADE, BURST_DURATION, getIntroPhase, setIntroBurst, setIntroPhase } from "@/lib/intro";
 
 gsap.registerPlugin(useGSAP);
 
@@ -23,7 +23,8 @@ const SPREAD_END = 1 + LAYER_LAG;
 const PRELOAD_TARGET = 0.9;
 const PRELOAD_DURATION = 2.6;
 const FINISH_DURATION = 1;
-const FADE_DURATION = 1.4;
+const POP_DURATION = 0.2;
+const POP_SCALE = 1.08;
 const WAVE_TRAVEL = 2.8;
 const WAVE_AMP = 0.05;
 const WAVE_WIDTH = 0.28;
@@ -39,14 +40,14 @@ type Layer = {
 };
 
 const LAYERS: Layer[] = [
-  { offset: 0.35, amp: 0.8, fill: () => "rgba(59, 130, 246, 0.35)" },
+  { offset: 0.35, amp: 0.8, fill: () => "rgba(139, 92, 246, 0.35)" },
   {
     offset: 0,
     amp: 1,
     fill: (ctx, height) => {
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
       gradient.addColorStop(0, "#3b82f6");
-      gradient.addColorStop(1, "#2563eb");
+      gradient.addColorStop(1, "#8b5cf6");
       return gradient;
     },
   },
@@ -74,6 +75,7 @@ function crestPosition(time: number): { pos: number; dir: number } {
 
 export default function Loader(): React.JSX.Element | null {
   const root = useRef<HTMLDivElement>(null);
+  const ring = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const label = useRef<HTMLSpanElement>(null);
   const [visible, setVisible] = useState(() => getIntroPhase() === "loading");
@@ -169,13 +171,22 @@ export default function Loader(): React.JSX.Element | null {
           if (!pageLoaded) tl.pause();
         })
         .to(progress, { value: 1, duration: FINISH_DURATION, ease: "power2.out" })
-        .call(() => setIntroPhase("revealing"))
-        .to(root.current, {
-          opacity: 0,
-          duration: FADE_DURATION,
-          ease: "power2.inOut",
-          onComplete: () => setVisible(false),
-        });
+        .call(() => {
+          // Hand the ring size to the particle scene so it bursts from the same spot
+          setIntroBurst((ring.current?.offsetWidth ?? 0) / 2);
+          setIntroPhase("revealing");
+        })
+        .to(ring.current, { scale: POP_SCALE, opacity: 0, duration: POP_DURATION, ease: "power2.out" })
+        .to(
+          root.current,
+          {
+            opacity: 0,
+            duration: BACKDROP_FADE,
+            ease: "power2.inOut",
+            onComplete: () => setVisible(false),
+          },
+          `<${BURST_DURATION}`,
+        );
 
       const onLoad = (): void => {
         pageLoaded = true;
@@ -196,13 +207,17 @@ export default function Loader(): React.JSX.Element | null {
 
   return (
     <div ref={root} aria-hidden className="fixed inset-0 z-100 flex items-center justify-center bg-neutral-950">
-      <div className="relative size-[min(70vw,20rem)] overflow-hidden rounded-full border-4 border-blue-500">
-        <canvas ref={canvas} className="absolute inset-0 h-full w-full" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-          <span className="text-3xl font-semibold tracking-[0.3em] text-neutral-200 uppercase">huy.dev</span>
-          <span ref={label} className="font-mono text-sm text-neutral-100">
-            0%
-          </span>
+      <div
+        ref={ring}
+        className="size-[min(70vw,20rem)] rounded-full bg-linear-to-br from-[#3b82f6] to-[#8b5cf6] p-1"
+      >
+        <div className="relative size-full overflow-hidden rounded-full bg-neutral-950">
+          <canvas ref={canvas} className="absolute inset-0 h-full w-full" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span ref={label} className="font-mono text-2xl font-semibold text-[#fbbf24]">
+              0%
+            </span>
+          </div>
         </div>
       </div>
     </div>
