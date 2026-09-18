@@ -159,7 +159,11 @@ export default function Loader(): React.JSX.Element | null {
 
         // Percent mirrors the visible rise above the surge, so the number matches the water level
         const fill = Math.min(Math.max((height - surge - level) / (height - surge), 0), 1);
-        if (label.current) label.current.textContent = `${Math.round(fill * 100)}%`;
+        if (label.current) {
+          label.current.textContent = `${Math.round(fill * 100)}%`;
+          // Switch to the water-friendly color once the surface passes the centered label
+          label.current.toggleAttribute("data-submerged", level < height / 2);
+        }
       };
       gsap.ticker.add(draw);
 
@@ -206,15 +210,15 @@ export default function Loader(): React.JSX.Element | null {
   if (!visible) return null;
 
   return (
-    <div ref={root} aria-hidden className="fixed inset-0 z-100 flex items-center justify-center bg-neutral-950">
+    <div ref={root} aria-hidden className="fixed inset-0 z-100 flex items-center justify-center bg-background">
       <div
         ref={ring}
         className="size-[min(70vw,20rem)] rounded-full bg-linear-to-br from-[#3b82f6] to-[#8b5cf6] p-1"
       >
-        <div className="relative size-full overflow-hidden rounded-full bg-neutral-950">
+        <div className="relative size-full overflow-hidden rounded-full bg-background">
           <canvas ref={canvas} className="absolute inset-0 h-full w-full" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <span ref={label} className="font-mono text-2xl font-semibold text-[#fbbf24]">
+            <span ref={label} className="font-mono text-2xl font-semibold text-amber-600 transition-colors duration-300 data-submerged:text-[#fbbf24] dark:text-[#fbbf24] drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
               0%
             </span>
           </div>
