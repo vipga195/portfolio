@@ -8,6 +8,7 @@ import {
   Color,
   DataTexture,
   MathUtils,
+  NormalBlending,
   PerspectiveCamera,
   Plane,
   Points,
@@ -65,6 +66,8 @@ const TILT_EASE = 3;
 const MAX_DT = 1 / 30;
 const POINT_SIZE_RATIO = 0.012;
 const FULL_SCREEN_FILL = 0.75;
+// Normal blending on white lacks the additive glow build-up, so enlarge particles to keep the monogram dense
+const LIGHT_SIZE_BOOST = 1.8;
 
 type ParticleData = {
   targets: Float32Array;
@@ -198,8 +201,17 @@ export default function HeroScene({ paused = false, intro }: HeroSceneProps): Re
       vertexColors: true,
       transparent: true,
       depthWrite: false,
-      blending: AdditiveBlending,
     });
+    const darkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+    let schemeSize = 1;
+    const applyScheme = (): void => {
+      schemeSize = darkScheme.matches ? 1 : LIGHT_SIZE_BOOST;
+      // Additive glow only reads on dark backgrounds; on white it washes out, so blend normally there
+      material.blending = darkScheme.matches ? AdditiveBlending : NormalBlending;
+      material.needsUpdate = true;
+    };
+    applyScheme();
+    darkScheme.addEventListener("change", applyScheme);
     const points = new Points(geometry, material);
     scene.add(points);
 
@@ -209,7 +221,7 @@ export default function HeroScene({ paused = false, intro }: HeroSceneProps): Re
       const scale = MathUtils.lerp(layout.fullScale, layout.finalScale, settle);
       points.scale.setScalar(scale);
       points.position.x = layout.finalX * settle;
-      material.size = scale * POINT_SIZE_RATIO * layout.sizeBoost;
+      material.size = scale * POINT_SIZE_RATIO * layout.sizeBoost * schemeSize;
     };
 
     const resize = (): void => {
@@ -356,6 +368,7 @@ export default function HeroScene({ paused = false, intro }: HeroSceneProps): Re
       renderer.setAnimationLoop(null);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerout", onPointerOut);
+      darkScheme.removeEventListener("change", applyScheme);
       observer.disconnect();
       timer.dispose();
       geometry.dispose();
