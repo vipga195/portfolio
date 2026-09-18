@@ -18,7 +18,8 @@ export default function Section({ id, title, children }: SectionProps): React.JS
 
   useGSAP(
     () => {
-      gsap.matchMedia().add("(prefers-reduced-motion: no-preference)", () => {
+      // TEMP preview: ignore reduced motion (restore "(prefers-reduced-motion: no-preference)")
+      gsap.matchMedia().add("all", () => {
         gsap.from(".reveal", {
           y: 30,
           opacity: 0,

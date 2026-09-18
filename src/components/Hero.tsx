@@ -42,7 +42,8 @@ export default function Hero({ lang, labels }: HeroProps): React.JSX.Element {
 
   useGSAP(
     () => {
-      gsap.matchMedia().add("(prefers-reduced-motion: no-preference)", () => {
+      // TEMP preview: force the intro even with reduced motion (restore "(prefers-reduced-motion: no-preference)")
+      gsap.matchMedia().add("all", () => {
         let caret: Element | null = null;
         const moveCaret = (el: Element | null): void => {
           caret?.removeAttribute("data-caret");

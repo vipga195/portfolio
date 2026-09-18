@@ -53,7 +53,8 @@ export default function SmoothScroll({
     ScrollTrigger.config({
       autoRefreshEvents: "resize,load,visibilitychange,DOMContentLoaded",
     });
-    gsap.matchMedia().add("(prefers-reduced-motion: no-preference)", () => {
+    // TEMP preview: ignore reduced motion (restore "(prefers-reduced-motion: no-preference)")
+    gsap.matchMedia().add("all", () => {
       const perf = getPerformanceLevel();
       const isTouch = ScrollTrigger.isTouch === 1;
       ScrollSmoother.create({

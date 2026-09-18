@@ -64,12 +64,13 @@ export default function MobileMenu({ items, label, closeLabel, lang, languageLab
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
+      {/* TEMP preview: ignore reduced motion (restore "motion-reduce:translate-x-8" on the closed state) */}
       <nav
         id="mobile-menu"
         aria-label={label}
         inert={!open}
         className={`fixed inset-y-0 right-0 z-40 flex h-dvh w-[85vw] flex-col border-l border-white/5 bg-neutral-950 px-6 pt-20 pb-4 transition-[translate,opacity,visibility] duration-300 ease-out ${
-          open ? "visible translate-x-0 opacity-100" : "invisible translate-x-full opacity-0 motion-reduce:translate-x-8"
+          open ? "visible translate-x-0 opacity-100" : "invisible translate-x-full opacity-0"
         }`}
       >
         <ul className="flex-1 overflow-y-auto">
