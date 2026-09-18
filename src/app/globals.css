@@ -24,3 +24,20 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
 }
+
+/* Hero typing caret: rides after the latest typed character without shifting text */
+.hero-char[data-caret] {
+  @apply relative;
+}
+
+.hero-char[data-caret]::after {
+  content: "";
+  @apply absolute top-[0.1em] left-full ml-0.5 h-[0.9em] w-0.5 bg-current;
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}

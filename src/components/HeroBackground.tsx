@@ -18,6 +18,8 @@ const MAX_OPACITY = 0.7;
 // Hold the full-screen monogram while particles assemble, then shrink slowly into place
 const SETTLE_DELAY = 2.8;
 const SETTLE_DURATION = 2.6;
+// Particles finish gathering into the monogram (matches INTRO_DURATION in HeroScene), before the hold ends
+const ASSEMBLE_DELAY = 1.25;
 // Above the loader backdrop (z-100) so only particles show while the page stays hidden
 const BURST_Z = 110;
 
@@ -55,6 +57,11 @@ export default function HeroBackground(): React.JSX.Element {
         gsap.set(container.current, { clearProps: "zIndex", delay: BURST_DURATION + BACKDROP_FADE });
       }
       intro.current.active = true;
+      const burstDelay = intro.current.burst > 0 ? BURST_DURATION : 0;
+      gsap.delayedCall(reducedMotion ? 0 : ASSEMBLE_DELAY + burstDelay, () => {
+        // Guard: with reduced motion the settle tween may finish first
+        if (getIntroPhase() === "revealing") setIntroPhase("assembled");
+      });
       gsap.to(intro.current, {
         settle: 1,
         delay: reducedMotion ? 0 : SETTLE_DELAY + (intro.current.burst > 0 ? BURST_DURATION : 0),

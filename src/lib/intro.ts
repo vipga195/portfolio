@@ -1,4 +1,5 @@
-export type IntroPhase = "loading" | "revealing" | "settled";
+// "assembled": particles have formed the full-screen monogram and start shrinking into place
+export type IntroPhase = "loading" | "revealing" | "assembled" | "settled";
 
 type IntroListener = (phase: IntroPhase) => void;
 
