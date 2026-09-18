@@ -36,6 +36,8 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
     metadataBase: new URL(SITE_URL),
     title,
     description,
+    authors: [{ name: PROFILE.name, url: PROFILE.linkedin }],
+    creator: PROFILE.name,
     alternates: {
       canonical: localePath(lang),
       languages: {
