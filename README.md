@@ -14,7 +14,7 @@ Front-End Developer with **7+ years of experience** building complex web experie
 |---|---|
 | Frontend | React, Next.js, Vue.js, Nuxt.js, Vite, React Native, Tailwind CSS, SASS |
 | Animation & 3D | GSAP, Three.js, Animate.js |
-| CMS & Backend | Contentful (custom extensions), Node.js, RESTful API |
+| Backend & CMS | Node.js, Next.js Route Handlers, RESTful API, PostgreSQL, Contentful (custom extensions) |
 | Quality & Performance | SEO Optimization, Accessibility (a11y), Performance Tuning |
 | Workflow | GitHub Actions, Git, Agile / Scrum |
 
@@ -35,7 +35,7 @@ Front-End Developer with **7+ years of experience** building complex web experie
 - Develop and maintain front-end for Japanese client projects
 - Extend and customize Contentful CMS
 - Build and maintain CI/CD pipelines with GitHub
-- Maintain and develop Node.js services
+- Build and maintain Node.js APIs for website forms, forwarding submitted data to external services
 - Build UI animation with GSAP, Three.js, Animate.js
 
 **Minerva Solution** — Front-End Developer · 08/2020 – 12/2021
@@ -68,40 +68,4 @@ Built with Next.js 16 (App Router), TypeScript, Tailwind CSS v4, GSAP (ScrollTri
 - Open Graph / Twitter card: localized `og:title`, `og:description`, `og:locale` (+ alternates) in `generateMetadata`; static 1200x630 OG image per locale in `public/og/{en,ja,vi}.png` (Geist + Noto Sans JP, localized title; no runtime/build-time font download)
 - All content lives in [`src/data/profile.ts`](src/data/profile.ts) (localized fields), UI strings in [`src/i18n/dictionary.ts`](src/i18n/dictionary.ts)
 - GitHub Actions CI: lint, typecheck, build, publish Docker image to GHCR
-
-### Run locally
-
-```bash
-npm install
-npm run dev
-```
-
-### Run with Docker
-
-```bash
-docker compose up -d   # http://localhost:1995
-docker compose down
-```
-
-### Auto deploy
-
-Push to `main` -> CI (lint, typecheck, build) -> image `ghcr.io/vipga195/portfolio:latest` (linux/arm64) -> signed webhook to [deploy-hook](../../deploy-hook) -> `docker compose pull && up -d`.
-
-Requires repo variable `DEPLOY_URL` and secret `DEPLOY_SECRET`; the `deploy` job is skipped until they are set.
-
-### Roadmap
-
-- [x] Real GitHub link, LinkedIn button hidden until a URL is set
-- [x] Skills: SEO, Accessibility, Performance Tuning
-- [x] LinkedIn URL (`PROFILE.linkedin`)
-- [ ] Metrics (Core Web Vitals, performance) for DeNA, GO Inc., Wonderia — rendering ready, data pending
-- [x] Thumbnails / demo videos for Featured Work (`public/projects/`: MP4 + poster for DeNA, GO Inc., Wonderia, DeNA AI Link, DeNA Alumni, DeNA Games Tokyo; MP4 tracked with Git LFS)
-
-- [ ] Light color scheme: `globals.css` body background overrides `bg-neutral-950` (header looks off in light mode)
-- [ ] Case studies with screenshots (problem → solution → result)
-- [ ] Full Knowledge Base articles (detail pages)
-- [ ] Content managed in Contentful
-- [x] English / Japanese / Vietnamese (i18n)
-- [x] Signature hero (particle "H." monogram)
-- [ ] Side projects: Contentful extension, fullstack app, animation lab
-- [ ] Deploy to Vercel with Lighthouse CI
+- Contact form backed by a Next.js Route Handler (`POST /api/contact`): server-side validation, honeypot, in-memory rate limit (5 req / 10 min per IP), parameterized insert into PostgreSQL (`contact_messages`, IP stored as SHA-256 hash), Gmail SMTP notification via nodemailer (email failure does not fail the request once the message is saved)

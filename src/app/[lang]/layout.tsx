@@ -72,6 +72,9 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
       lang={lang}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <meta name="google-site-verification" content="e7iRMyyNYif6TvvKSjc2xGcEdbWnCvOIWOFWkUVg_1c" />
+      </head>
       <body className="flex min-h-full flex-col bg-neutral-950 text-neutral-100">{children}</body>
     </html>
   );
