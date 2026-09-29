@@ -42,7 +42,7 @@ yarn-error.log*
 next-env.d.ts
 
 # CV master sources and tailored CVs (contain personal data)
-/docs/
+/docs/*.docx
 /jobs/
 
 # Claude Code local config and agents
