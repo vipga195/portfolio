@@ -3,6 +3,7 @@ import { DEFAULT_LOCALE, hasLocale, type Locale } from "@/i18n/config";
 export type ContactMessage = {
   name: string;
   email: string;
+  company: string;
   message: string;
   locale: Locale;
 };
@@ -11,7 +12,7 @@ export const HONEYPOT_FIELD = "website";
 
 type ParseResult =
   | { ok: true; data: ContactMessage }
-  | { ok: false; field: "name" | "email" | "message" | "body" };
+  | { ok: false; field: "name" | "email" | "company" | "message" | "body" };
 
 export function parseContact(input: unknown): ParseResult {
   if (typeof input !== "object" || input === null) {
@@ -31,6 +32,11 @@ export function parseContact(input: unknown): ParseResult {
     return { ok: false, field: "email" };
   }
 
+  const company = typeof obj.company === "string" ? obj.company.trim() : "";
+  if (company.length > 200) {
+    return { ok: false, field: "company" };
+  }
+
   const message = typeof obj.message === "string" ? obj.message.trim() : "";
   if (message.length < 10 || message.length > 5000) {
     return { ok: false, field: "message" };
@@ -44,6 +50,7 @@ export function parseContact(input: unknown): ParseResult {
     data: {
       name,
       email,
+      company,
       message,
       locale,
     },

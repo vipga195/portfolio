@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { getPool } from "@/lib/db";
-import { sendContactNotification } from "@/lib/mailer";
+import { sendContactNotification, sendThankYou } from "@/lib/mailer";
 import { isRateLimited } from "@/lib/rateLimit";
 import { HONEYPOT_FIELD, parseContact } from "@/lib/contact";
 
@@ -36,23 +36,28 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const ipHash = createHash("sha256").update(ip).digest("hex");
-  const { name, email, message, locale } = parseResult.data;
+  const { name, email, company, message, locale } = parseResult.data;
 
   const pool = getPool();
   try {
     await pool.query(
-      "INSERT INTO contact_messages (name, email, message, locale, ip_hash) VALUES ($1, $2, $3, $4, $5)",
-      [name, email, message, locale, ipHash],
+      "INSERT INTO contact_messages (name, email, company, message, locale, ip_hash) VALUES ($1, $2, $3, $4, $5, $6)",
+      [name, email, company || null, message, locale, ipHash],
     );
   } catch (error) {
     console.error("Database error:", error);
     return Response.json({ error: "server_error" }, { status: 500 });
   }
 
-  try {
-    await sendContactNotification(parseResult.data);
-  } catch (error) {
-    console.error("Email error:", error);
+  const emailResults = await Promise.allSettled([
+    sendContactNotification(parseResult.data),
+    sendThankYou(parseResult.data),
+  ]);
+
+  for (const result of emailResults) {
+    if (result.status === "rejected") {
+      console.error("Email error:", result.reason);
+    }
   }
 
   return Response.json({ ok: true }, { status: 201 });
