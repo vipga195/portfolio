@@ -1,5 +1,17 @@
 import type { Localized } from "./config";
 
+export type ContactFormLabels = {
+  name: string;
+  email: string;
+  message: string;
+  submit: string;
+  sending: string;
+  success: string;
+  error: string;
+  rateLimited: string;
+  invalid: string;
+};
+
 export type Dictionary = {
   meta: { title: string; description: string };
   nav: { about: string; skills: string; projects: string; experience: string; knowledge: string; contact: string };
@@ -7,6 +19,7 @@ export type Dictionary = {
   sections: { about: string; skills: string; projects: string; experience: string; knowledgeBase: string; contact: string };
   teamOf: (size: number) => string;
   contactText: string;
+  contactForm: ContactFormLabels;
   languageLabel: string;
   menuLabel: string;
   closeMenuLabel: string;
@@ -38,6 +51,17 @@ export const DICTIONARIES: Localized<Dictionary> = {
     },
     teamOf: (size) => `Team of ${size}`,
     contactText: "Open to Front-End / Fullstack opportunities. Feel free to reach out.",
+    contactForm: {
+      name: "Name",
+      email: "Email",
+      message: "Message",
+      submit: "Send Message",
+      sending: "Sending...",
+      success: "Message sent successfully! Thank you for reaching out.",
+      error: "An error occurred. Please try again.",
+      rateLimited: "Too many requests. Please try again later.",
+      invalid: "Please check your input and try again.",
+    },
     languageLabel: "Language",
     menuLabel: "Menu",
     closeMenuLabel: "Close menu",
@@ -67,6 +91,17 @@ export const DICTIONARIES: Localized<Dictionary> = {
     },
     teamOf: (size) => `チーム ${size}名`,
     contactText: "フロントエンド／フルスタックのポジションを歓迎しています。お気軽にご連絡ください。",
+    contactForm: {
+      name: "お名前",
+      email: "メールアドレス",
+      message: "メッセージ",
+      submit: "送信する",
+      sending: "送信中...",
+      success: "メッセージが正常に送信されました。ご連絡ありがとうございます。",
+      error: "エラーが発生しました。もう一度お試しください。",
+      rateLimited: "リクエストが多すぎます。後でもう一度お試しください。",
+      invalid: "入力内容を確認してもう一度お試しください。",
+    },
     languageLabel: "言語",
     menuLabel: "メニュー",
     closeMenuLabel: "メニューを閉じる",
@@ -96,6 +131,17 @@ export const DICTIONARIES: Localized<Dictionary> = {
     },
     teamOf: (size) => `Team ${size} người`,
     contactText: "Sẵn sàng cho các cơ hội Front-End / Fullstack. Hãy liên hệ với tôi.",
+    contactForm: {
+      name: "Tên của bạn",
+      email: "Email",
+      message: "Tin nhắn",
+      submit: "Gửi tin nhắn",
+      sending: "Đang gửi...",
+      success: "Tin nhắn đã được gửi thành công. Cảm ơn bạn đã liên hệ.",
+      error: "Có lỗi xảy ra. Vui lòng thử lại.",
+      rateLimited: "Quá nhiều yêu cầu. Vui lòng thử lại sau.",
+      invalid: "Vui lòng kiểm tra thông tin và thử lại.",
+    },
     languageLabel: "Ngôn ngữ",
     menuLabel: "Menu",
     closeMenuLabel: "Đóng menu",

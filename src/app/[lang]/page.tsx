@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
+import ContactForm from "@/components/ContactForm";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import HeroBackground from "@/components/HeroBackground";
@@ -186,6 +187,9 @@ export default async function Home({ params }: PageProps<"/[lang]">): Promise<Re
                   LinkedIn
                 </a>
               )}
+            </div>
+            <div className="reveal mt-12 max-w-xl">
+              <ContactForm lang={lang} labels={dict.contactForm} />
             </div>
           </Section>
         </main>
