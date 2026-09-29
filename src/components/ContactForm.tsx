@@ -25,6 +25,7 @@ export default function ContactForm({ lang, labels }: FormProps): React.JSX.Elem
     const input = {
       name: String(formData.get("name") ?? ""),
       email: String(formData.get("email") ?? ""),
+      company: String(formData.get("company") ?? ""),
       message: String(formData.get("message") ?? ""),
       locale: lang,
       [HONEYPOT_FIELD]: String(formData.get(HONEYPOT_FIELD) ?? ""),
@@ -110,6 +111,21 @@ export default function ContactForm({ lang, labels }: FormProps): React.JSX.Elem
           maxLength={254}
           className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-blue-500 outline-none"
           placeholder={labels.email}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="contact-company" className="block text-sm font-medium text-neutral-200 mb-2">
+          {labels.company}
+        </label>
+        <input
+          id="contact-company"
+          name="company"
+          type="text"
+          maxLength={200}
+          autoComplete="organization"
+          className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-blue-500 outline-none"
+          placeholder={labels.company}
         />
       </div>
 

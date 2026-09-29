@@ -3,6 +3,7 @@ import type { Localized } from "./config";
 export type ContactFormLabels = {
   name: string;
   email: string;
+  company: string;
   message: string;
   submit: string;
   sending: string;
@@ -54,6 +55,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
     contactForm: {
       name: "Name",
       email: "Email",
+      company: "Company (optional)",
       message: "Message",
       submit: "Send Message",
       sending: "Sending...",
@@ -94,6 +96,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
     contactForm: {
       name: "お名前",
       email: "メールアドレス",
+      company: "会社名（任意）",
       message: "メッセージ",
       submit: "送信する",
       sending: "送信中...",
@@ -134,6 +137,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
     contactForm: {
       name: "Tên của bạn",
       email: "Email",
+      company: "Công ty (không bắt buộc)",
       message: "Tin nhắn",
       submit: "Gửi tin nhắn",
       sending: "Đang gửi...",
