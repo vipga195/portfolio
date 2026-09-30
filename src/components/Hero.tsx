@@ -103,6 +103,7 @@ export default function Hero({ lang, labels }: HeroProps): React.JSX.Element {
           </a>
           <a
             href={PROFILE.cvUrl}
+            target="_blank"
             className="rounded-full border border-neutral-600 px-6 py-3 font-medium hover:border-neutral-300"
           >
             {labels.downloadCv}

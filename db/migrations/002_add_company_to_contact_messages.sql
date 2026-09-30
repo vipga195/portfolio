@@ -1,0 +1,1 @@
+ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS company VARCHAR(200);
