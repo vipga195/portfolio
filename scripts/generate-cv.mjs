@@ -57,7 +57,7 @@ function CvDocument(props) {
       { size: "A4", style: props.lang === "ja" || props.lang === "vi" ? [styles.page, { fontFamily: "CvFont" }] : styles.page },
       e(Text, { style: styles.name }, props.profile.name),
       e(Text, { style: styles.titleLine }, props.profile.title),
-      e(Text, { style: styles.contactLine }, [props.profile.email, props.profile.phone, props.profile.portfolio, props.profile.github, props.profile.linkedin].filter(Boolean).join(" | ")),
+      e(Text, { style: styles.contactLine }, [props.profile.email, props.profile.phone, props.profile.address, props.profile.portfolio, props.profile.github, props.profile.linkedin].filter(Boolean).join(" | ")),
       e(Text, { style: styles.sectionTitle }, labels.summary),
       e(Text, { style: styles.paragraph }, props.profile.about),
       e(Text, { style: styles.sectionTitle }, labels.skills),
