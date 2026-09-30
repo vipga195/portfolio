@@ -1,0 +1,53 @@
+name: CV PDF
+
+# Convert the public CV copies (cv/*.docx) to PDF with LibreOffice and commit them to public/.
+on:
+  push:
+    paths:
+      - "cv/*.docx"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cv-pdf-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install LibreOffice and metric-compatible fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libreoffice-writer fonts-crosextra-carlito
+          # Gelasio is metric-compatible with Georgia; not packaged in Ubuntu
+          mkdir -p ~/.local/share/fonts ~/.config/fontconfig
+          curl -fsSL -o ~/.local/share/fonts/Gelasio.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/gelasio/Gelasio%5Bwght%5D.ttf"
+          cat > ~/.config/fontconfig/fonts.conf <<'EOF'
+          <?xml version="1.0"?>
+          <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+          <fontconfig>
+            <alias><family>Georgia</family><prefer><family>Gelasio</family></prefer></alias>
+            <alias><family>Calibri</family><prefer><family>Carlito</family></prefer></alias>
+          </fontconfig>
+          EOF
+          fc-cache -f
+
+      - name: Convert DOCX to PDF
+        run: soffice --headless --convert-to pdf --outdir public cv/*.docx
+
+      - name: Commit PDFs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/*.pdf
+          if git diff --cached --quiet; then
+            echo "No PDF changes"
+          else
+            git commit -m "chore: regenerate CV PDFs from cv/*.docx"
+            git push
+          fi
