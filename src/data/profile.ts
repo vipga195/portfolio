@@ -67,16 +67,38 @@ export const PROFILE = {
 export const SKILLS: SkillGroup[] = [
   {
     title: { en: "Frontend", ja: "フロントエンド", vi: "Frontend" },
-    items: ["React", "Next.js", "Vue.js", "Nuxt.js", "Vite", "React Native", "Tailwind CSS", "SASS"],
+    items: [
+      "HTML5",
+      "CSS3",
+      "React",
+      "Next.js",
+      "Vue.js",
+      "Nuxt.js",
+      "Vite",
+      "React Native",
+      "Redux",
+      "Redux-Saga",
+      "Axios",
+      "Ant Design",
+      "Bootstrap",
+      "Tailwind CSS",
+      "SASS",
+    ],
   },
   { title: { en: "Animation & 3D", ja: "アニメーション・3D", vi: "Animation & 3D" }, items: ["GSAP", "Three.js", "Animate.js"] },
   {
     title: { en: "Backend & CMS", ja: "バックエンド・CMS", vi: "Backend & CMS" },
-    items: ["Node.js", "Next.js Route Handlers", "RESTful API", "PostgreSQL", "Contentful (custom extensions)"],
+    items: ["Node.js", "Next.js Route Handlers", "RESTful API", "GraphQL", "PostgreSQL", "Contentful (custom extensions)"],
   },
   {
     title: { en: "Quality & Performance", ja: "品質・パフォーマンス", vi: "Chất lượng & Hiệu năng" },
-    items: ["SEO Optimization", "Accessibility (a11y)", "Performance Tuning"],
+    items: [
+      "Responsive Design",
+      "SEO Optimization",
+      "Accessibility (a11y)",
+      "Performance Tuning",
+      "Testing & Debugging",
+    ],
   },
   { title: { en: "Workflow", ja: "ワークフロー", vi: "Quy trình" }, items: ["GitHub Actions", "Git", "Agile / Scrum"] },
 ];
