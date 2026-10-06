@@ -117,15 +117,22 @@ export default function SmoothScroll({
     const isRouteChange = lastPathname !== null && lastPathname !== window.location.pathname;
     lastPathname = window.location.pathname;
     // Always start from the top on reload instead of restoring the previous scroll position
-    window.history.scrollRestoration = "manual";
+    // Go through ScrollTrigger: its refresh resets history.scrollRestoration to the value it captured at load
+    ScrollTrigger.clearScrollMemory("manual");
     const isReload =
       !reloadHandled &&
       performance.getEntriesByType("navigation")[0]?.toJSON().type === "reload";
     reloadHandled = true;
-    if ((isRouteChange || isReload) && !window.location.hash) {
+    const scrollToTop = (): void => {
       const smoother = ScrollSmoother.get();
       if (smoother) smoother.scrollTo(0, false);
       else window.scrollTo(0, 0);
+    };
+    const shouldReset = (isRouteChange || isReload) && !window.location.hash;
+    if (shouldReset) scrollToTop();
+    // Production: the browser/ScrollTrigger may restore the old position after the load-time refresh
+    if (isReload && shouldReset && document.readyState !== "complete") {
+      window.addEventListener("load", scrollToTop, { once: true });
     }
 
     if (document.readyState === "complete") {
@@ -154,6 +161,7 @@ export default function SmoothScroll({
       setScrollLocked(false);
       document.removeEventListener("click", onClick);
       window.removeEventListener("load", scrollToInitialHash);
+      window.removeEventListener("load", scrollToTop);
     };
   });
 
