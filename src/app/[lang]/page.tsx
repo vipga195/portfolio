@@ -199,6 +199,9 @@ export default async function Home({ params }: PageProps<"/[lang]">): Promise<Re
       </SmoothScroll>
       <HeroBackground />
       <Loader />
+      <noscript>
+        <style>{"#preloader{display:none}"}</style>
+      </noscript>
     </>
   );
 }
