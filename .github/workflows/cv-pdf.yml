@@ -3,6 +3,9 @@ name: CV PDF
 # Convert the public CV copies (cv/*.docx) to PDF with LibreOffice and commit them to public/.
 on:
   push:
+    # main is protected (PR only); PDFs are committed on the PR branch instead
+    branches-ignore:
+      - main
     paths:
       - "cv/*.docx"
   workflow_dispatch:
