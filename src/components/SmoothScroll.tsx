@@ -12,6 +12,7 @@ gsap.registerPlugin(ScrollTrigger, ScrollSmoother, ScrollToPlugin, useGSAP);
 
 // Survives client-side navigation (module scope), used to detect a locale switch on remount
 let lastPathname: string | null = null;
+let reloadHandled = false;
 
 const HEADER_HEIGHT = 64;
 const HEADER_OFFSET = `top ${HEADER_HEIGHT}px`;
@@ -115,7 +116,13 @@ export default function SmoothScroll({
     // Next.js skips its scroll-to-top because the first element of the page is the fixed header
     const isRouteChange = lastPathname !== null && lastPathname !== window.location.pathname;
     lastPathname = window.location.pathname;
-    if (isRouteChange && !window.location.hash) {
+    // Always start from the top on reload instead of restoring the previous scroll position
+    window.history.scrollRestoration = "manual";
+    const isReload =
+      !reloadHandled &&
+      performance.getEntriesByType("navigation")[0]?.toJSON().type === "reload";
+    reloadHandled = true;
+    if ((isRouteChange || isReload) && !window.location.hash) {
       const smoother = ScrollSmoother.get();
       if (smoother) smoother.scrollTo(0, false);
       else window.scrollTo(0, 0);
