@@ -1,6 +1,6 @@
 # Nguyen Trung Huy — Front-End Developer
 
-Front-End Developer with **7+ years of experience** building complex web experiences for Japanese clients using React, Next.js, Vue.js and Nuxt.js. I extend Contentful CMS, run CI/CD pipelines on GitHub, and craft interactive UI with GSAP and Three.js. Currently growing toward Fullstack development.
+Front-End Developer with **7+ years of experience**, many of them building complex web experiences for Japanese clients using React, Next.js, Vue.js and Nuxt.js. I extend Contentful CMS, run CI/CD pipelines on GitHub, and craft interactive UI with GSAP and Three.js. Currently growing toward Fullstack development.
 
 - Email: [trunghuy1701@gmail.com](mailto:trunghuy1701@gmail.com)
 - GitHub: [@vipga195](https://github.com/vipga195)
