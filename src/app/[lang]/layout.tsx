@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
 
 import { PROFILE } from "@/data/profile";
+import { SITE_URL } from "@/lib/site";
 import { DEFAULT_LOCALE, LOCALES, hasLocale, localePath, type Localized } from "@/i18n/config";
 import { DICTIONARIES } from "@/i18n/dictionary";
 import "../globals.css";
@@ -16,8 +17,6 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin", "vietnamese"],
 });
-
-const SITE_URL = "https://portfolio.cocahome.click";
 
 const OG_LOCALES: Localized = { en: "en_US", ja: "ja_JP", vi: "vi_VN" };
 
