@@ -58,9 +58,9 @@ export const PROFILE = {
     vi: "Hơn 7 năm làm front-end, trong đó nhiều năm xây dựng các website phức tạp cho khách hàng Nhật Bản với React, Next.js, Vue và Nuxt.",
   } satisfies Localized,
   about: {
-    en: "I build and maintain production websites for large Japanese clients, extend Contentful CMS, run CI/CD pipelines on GitHub, and craft interactive UI with GSAP and Three.js. Currently growing toward Fullstack development.",
-    ja: "日本の大手クライアントの本番Webサイトの開発・保守、Contentful CMS の拡張、GitHub での CI/CD パイプライン運用、GSAP と Three.js によるインタラクティブな UI 制作を担当しています。現在はフルスタック開発へのスキル拡大に取り組んでいます。",
-    vi: "Tôi phát triển và bảo trì các website production cho những khách hàng lớn tại Nhật Bản, mở rộng Contentful CMS, vận hành CI/CD pipeline trên GitHub và xây dựng UI tương tác với GSAP, Three.js. Hiện tôi đang phát triển theo hướng Fullstack.",
+    en: "I build and maintain production websites for large Japanese clients, extend Contentful CMS, run CI/CD pipelines on GitHub, and craft interactive UI with GSAP and Three.js. Front-end focused, with hands-on Node.js API experience in production; currently deepening back-end skills (SQL/PostgreSQL, Docker) — this site's contact API and deploy pipeline are my own work.",
+    ja: "日本の大手クライアントの本番Webサイトの開発・保守、Contentful CMS の拡張、GitHub での CI/CD パイプライン運用、GSAP と Three.js によるインタラクティブな UI 制作を担当しています。フロントエンドを軸に、本番環境での Node.js API 開発経験があります。現在はバックエンドスキル（SQL/PostgreSQL、Docker）を強化中で、本サイトのお問い合わせ API とデプロイパイプラインも自作しています。",
+    vi: "Tôi phát triển và bảo trì các website production cho những khách hàng lớn tại Nhật Bản, mở rộng Contentful CMS, vận hành CI/CD pipeline trên GitHub và xây dựng UI tương tác với GSAP, Three.js. Tập trung vào front-end, có kinh nghiệm thực tế xây dựng API Node.js trên production; hiện đang bổ sung kỹ năng back-end (SQL/PostgreSQL, Docker) — API form liên hệ và pipeline deploy của chính site này do tôi tự xây dựng.",
   } satisfies Localized,
   email: "trunghuy1701@gmail.com",
   github: "https://github.com/vipga195",
@@ -71,7 +71,11 @@ export const PROFILE = {
 export const SKILLS: SkillGroup[] = [
   {
     title: { en: "Proficient", ja: "得意", vi: "Thành thạo" },
-    items: ["React", "Next.js", "GSAP", "Contentful (custom extensions)", "Three.js", "HTML5", "CSS3", "Tailwind CSS", "SASS"],
+    items: ["React", "Next.js", "TypeScript", "GSAP", "Contentful (custom extensions)", "Three.js", "HTML5", "CSS3", "Tailwind CSS", "SASS"],
+  },
+  {
+    title: { en: "AI-assisted Development", ja: "AI 活用開発", vi: "Phát triển với AI" },
+    items: ["Claude Code (daily)", "AI agents & subagents", "MCP", "Local LLM (Ollama)", "Prompt & context engineering"],
   },
   {
     title: { en: "Used regularly", ja: "日常的に使用", vi: "Dùng thường xuyên" },
