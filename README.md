@@ -22,12 +22,12 @@ Front-End Developer with **7+ years of experience** building complex web experie
 
 | Project | Role | Team | Stack |
 |---|---|---|---|
-| [DeNA Corporate Site](https://dena.com) | Develop and maintain | 8 | Next.js, Contentful, GSAP, GitHub Actions |
+| [DeNA Corporate Site](https://dena.com) | Maintain, worked across all pages | 8 | Next.js, Contentful, GSAP, GitHub Actions |
 | [GO Inc.](https://go.goinc.jp) | Develop and maintain | 5 | Next.js, GSAP |
-| [Wonderia](https://wonderia.jp) | Develop and maintain | 2 | Vite, Three.js, GSAP |
-| [DeNA AI Link](https://dena-ailink.com) | Develop and maintain | 2 | Next.js, Contentful |
-| [DeNA Alumni](https://alumni.dena.com) | Develop and maintain | 3 | Nuxt.js |
-| [DeNA Games Tokyo](https://denagames-tokyo.com) | Development, maintenance, QC and CI/CD | 3 | Next.js, GSAP, GitHub Actions |
+| [Wonderia](https://wonderia.jp) | Owner (develop and maintain) | 2 | Vite, Three.js, GSAP |
+| [DeNA AI Link](https://dena-ailink.com) | Owner (develop and maintain) | 2 | Next.js, Contentful |
+| [DeNA Alumni](https://alumni.dena.com) | Owner (develop and maintain) | 3 | Nuxt.js |
+| [DeNA Games Tokyo](https://denagames-tokyo.com) | Owner: development, maintenance, QC and CI/CD | 3 | Next.js, GSAP, GitHub Actions |
 
 ## Experience
 

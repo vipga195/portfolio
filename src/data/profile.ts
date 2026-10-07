@@ -44,6 +44,7 @@ export type Experience = {
 };
 
 const DEVELOP_AND_MAINTAIN: Localized = { en: "Develop and maintain", ja: "開発・保守", vi: "Phát triển và bảo trì" };
+const OWNER: Localized = { en: "Owner (develop and maintain)", ja: "主担当（開発・保守）", vi: "Phụ trách chính (phát triển và bảo trì)" };
 
 export const PROFILE = {
   name: "Nguyen Trung Huy",
@@ -112,7 +113,7 @@ export const PROJECTS: Project[] = [
       ja: "DeNA のコーポレートサイト。フロントエンド開発、Contentful 連携、UI アニメーションを担当。",
       vi: "Website doanh nghiệp của DeNA. Phát triển front-end, tích hợp Contentful và UI animation.",
     },
-    role: DEVELOP_AND_MAINTAIN,
+    role: { en: "Maintain, worked across all pages", ja: "保守（全ページ担当）", vi: "Bảo trì, làm việc trên tất cả các trang" },
     teamSize: 8,
     stack: ["Next.js", "Contentful", "GSAP", "GitHub Actions"],
     media: {
@@ -148,7 +149,7 @@ export const PROJECTS: Project[] = [
       ja: "アニメーションと 3D インタラクションを特徴とするブランドサイト。",
       vi: "Website thương hiệu với animation và tương tác 3D.",
     },
-    role: DEVELOP_AND_MAINTAIN,
+    role: OWNER,
     teamSize: 2,
     stack: ["Vite", "Three.js", "GSAP"],
     media: {
@@ -166,7 +167,7 @@ export const PROJECTS: Project[] = [
       ja: "DeNA AI Link のサービスサイト。",
       vi: "Website dịch vụ của DeNA AI Link.",
     },
-    role: DEVELOP_AND_MAINTAIN,
+    role: OWNER,
     teamSize: 2,
     stack: ["Next.js", "Contentful"],
     media: {
@@ -184,7 +185,7 @@ export const PROJECTS: Project[] = [
       ja: "DeNA のアルムナイ（退職者）コミュニティサイト。",
       vi: "Website cộng đồng cựu nhân viên (alumni) của DeNA.",
     },
-    role: DEVELOP_AND_MAINTAIN,
+    role: OWNER,
     teamSize: 3,
     stack: ["Nuxt.js"],
     media: {
@@ -203,9 +204,9 @@ export const PROJECTS: Project[] = [
       vi: "Website doanh nghiệp và tuyển dụng của DeNA Games Tokyo, công ty vận hành các tựa game như Pokémon Masters.",
     },
     role: {
-      en: "Development, maintenance, QC and CI/CD",
-      ja: "開発・保守・QC・CI/CD",
-      vi: "Phát triển, bảo trì, QC và CI/CD",
+      en: "Owner: development, maintenance, QC and CI/CD",
+      ja: "主担当：開発・保守・QC・CI/CD",
+      vi: "Phụ trách chính: phát triển, bảo trì, QC và CI/CD",
     },
     teamSize: 3,
     stack: ["Next.js", "GSAP", "GitHub Actions"],
