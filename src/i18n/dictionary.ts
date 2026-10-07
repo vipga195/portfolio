@@ -51,7 +51,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
       contact: "Contact",
     },
     teamOf: (size) => `Team of ${size}`,
-    contactText: "Looking for Front-End roles. Also open to Fullstack opportunities — feel free to reach out.",
+    contactText: "Looking for Front-End roles. Also open to Fullstack opportunities — feel free to reach out. Based in Vietnam, working remotely with Japanese clients via a Vietnam-based company. Working language: English.",
     contactForm: {
       name: "Name",
       email: "Email",
@@ -92,7 +92,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
       contact: "連絡先",
     },
     teamOf: (size) => `チーム ${size}名`,
-    contactText: "フロントエンド職を希望しています。フルスタックのポジションも歓迎します。お気軽にご連絡ください。",
+    contactText: "フロントエンド職を希望しています。フルスタックのポジションも歓迎します。お気軽にご連絡ください。ベトナム在住、ベトナムの会社を通じて日本のクライアントとリモートで業務を行っています。業務言語：英語。",
     contactForm: {
       name: "お名前",
       email: "メールアドレス",
@@ -133,7 +133,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
       contact: "Liên hệ",
     },
     teamOf: (size) => `Team ${size} người`,
-    contactText: "Đang tìm vị trí Front-End. Cũng sẵn sàng nhận vị trí Fullstack — hãy liên hệ với tôi.",
+    contactText: "Đang tìm vị trí Front-End. Cũng sẵn sàng nhận vị trí Fullstack — hãy liên hệ với tôi. Sống tại Việt Nam, làm việc remote với khách hàng Nhật thông qua công ty tại Việt Nam. Ngôn ngữ làm việc: tiếng Anh.",
     contactForm: {
       name: "Tên của bạn",
       email: "Email",
