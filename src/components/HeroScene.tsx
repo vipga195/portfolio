@@ -45,7 +45,7 @@ const COLOR_DOT = new Color("#fbbf24");
 
 const INTRO_DURATION = 2;
 // Seconds of BURST_DURATION spent flying out; the rest holds particles scattered
-const BURST_FLY = 0.9;
+const BURST_FLY = 0.35;
 const BURST_DEPTH = 0.6;
 // Scattered particles are sparse, so enlarge them until they gather back
 const BURST_SIZE = 6;

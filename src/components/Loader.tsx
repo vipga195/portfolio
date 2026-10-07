@@ -8,7 +8,7 @@ import { BACKDROP_FADE, BURST_DURATION, getIntroPhase, setIntroBurst, setIntroPh
 
 gsap.registerPlugin(useGSAP);
 
-const SPREAD_DURATION = 3.6;
+const SPREAD_DURATION = 1.2;
 const SURGE_HEIGHT = 0.18;
 const CURL_BUMP = 0.14;
 const CURL_WIDTH = 0.18;
@@ -21,9 +21,9 @@ const CURL_COLLAPSE: readonly [number, number] = [0.78, 0.98];
 const LAYER_LAG = 0.12;
 const SPREAD_END = 1 + LAYER_LAG;
 const PRELOAD_TARGET = 0.9;
-const PRELOAD_DURATION = 2.6;
-const FINISH_DURATION = 1;
-const POP_DURATION = 0.2;
+const PRELOAD_DURATION = 0.8;
+const FINISH_DURATION = 0.4;
+const POP_DURATION = 0.15;
 const POP_SCALE = 1.08;
 const WAVE_TRAVEL = 2.8;
 const WAVE_AMP = 0.05;
@@ -167,13 +167,9 @@ export default function Loader(): React.JSX.Element | null {
       };
       gsap.ticker.add(draw);
 
-      let pageLoaded = document.readyState === "complete";
       const tl = gsap.timeline();
       tl.to(spread, { value: SPREAD_END, duration: SPREAD_DURATION, ease: "sine.inOut" })
         .to(progress, { value: PRELOAD_TARGET, duration: PRELOAD_DURATION, ease: "power1.inOut" })
-        .call(() => {
-          if (!pageLoaded) tl.pause();
-        })
         .to(progress, { value: 1, duration: FINISH_DURATION, ease: "power2.out" })
         .call(() => {
           // Hand the ring size to the particle scene so it bursts from the same spot
@@ -192,16 +188,9 @@ export default function Loader(): React.JSX.Element | null {
           `<${BURST_DURATION}`,
         );
 
-      const onLoad = (): void => {
-        pageLoaded = true;
-        if (tl.paused()) tl.play();
-      };
-      window.addEventListener("load", onLoad, { once: true });
-
       return () => {
         gsap.ticker.remove(draw);
         window.removeEventListener("resize", resize);
-        window.removeEventListener("load", onLoad);
       };
     },
     { dependencies: [visible] },
@@ -210,7 +199,7 @@ export default function Loader(): React.JSX.Element | null {
   if (!visible) return null;
 
   return (
-    <div ref={root} aria-hidden className="fixed inset-0 z-100 flex items-center justify-center bg-background">
+    <div ref={root} id="preloader" aria-hidden className="fixed inset-0 z-100 flex items-center justify-center bg-background">
       <div
         ref={ring}
         className="size-[min(70vw,20rem)] rounded-full bg-linear-to-br from-[#3b82f6] to-[#8b5cf6] p-1"

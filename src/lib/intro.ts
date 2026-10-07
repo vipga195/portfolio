@@ -24,9 +24,9 @@ export function subscribeIntro(listener: IntroListener): () => void {
 }
 
 // Loader ring radius (px) where particles burst from before assembling; 0 = no burst
-export const BURST_DURATION = 2.4;
+export const BURST_DURATION = 0.35;
 // How long the loader backdrop takes to fade once particles start gathering
-export const BACKDROP_FADE = 1.5;
+export const BACKDROP_FADE = 0.25;
 let burstRadius = 0;
 
 export function getIntroBurst(): number {
