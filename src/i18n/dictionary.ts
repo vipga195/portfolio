@@ -29,9 +29,9 @@ export type Dictionary = {
 export const DICTIONARIES: Localized<Dictionary> = {
   en: {
     meta: {
-      title: "Nguyen Trung Huy — Front-End Developer",
+      title: "Nguyen Trung Huy — Front-End Engineer (React / Next.js)",
       description:
-        "Front-End Developer with 7+ years of experience building websites for large Japanese clients with React, Next.js, Vue, Nuxt, GSAP and Three.js.",
+        "Front-End Developer with 7+ years of experience, many of them building websites for large Japanese clients with React, Next.js, Vue, Nuxt, GSAP and Three.js.",
     },
     nav: {
       about: "About",
@@ -51,7 +51,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
       contact: "Contact",
     },
     teamOf: (size) => `Team of ${size}`,
-    contactText: "Open to Front-End / Fullstack opportunities. Feel free to reach out.",
+    contactText: "Looking for Front-End roles. Also open to Fullstack opportunities — feel free to reach out.",
     contactForm: {
       name: "Name",
       email: "Email",
@@ -70,9 +70,9 @@ export const DICTIONARIES: Localized<Dictionary> = {
   },
   ja: {
     meta: {
-      title: "Nguyen Trung Huy — フロントエンドエンジニア",
+      title: "Nguyen Trung Huy — フロントエンドエンジニア（React / Next.js）",
       description:
-        "React、Next.js、Vue、Nuxt、GSAP、Three.js を用いて、日本の大手クライアント向けにWebサイトの開発・保守を行っている、開発経験7年以上のフロントエンドエンジニア。",
+        "React、Next.js、Vue、Nuxt、GSAP、Three.js を用いて、日本の大手クライアント向けに長年Webサイトの開発・保守を行っている、開発経験7年以上のフロントエンドエンジニア。",
     },
     nav: {
       about: "概要",
@@ -92,7 +92,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
       contact: "連絡先",
     },
     teamOf: (size) => `チーム ${size}名`,
-    contactText: "フロントエンド／フルスタックのポジションを歓迎しています。お気軽にご連絡ください。",
+    contactText: "フロントエンド職を希望しています。フルスタックのポジションも歓迎します。お気軽にご連絡ください。",
     contactForm: {
       name: "お名前",
       email: "メールアドレス",
@@ -111,9 +111,9 @@ export const DICTIONARIES: Localized<Dictionary> = {
   },
   vi: {
     meta: {
-      title: "Nguyễn Trung Huy — Front-End Developer",
+      title: "Nguyễn Trung Huy — Front-End Engineer (React / Next.js)",
       description:
-        "Front-End Developer với hơn 7 năm kinh nghiệm xây dựng website cho các khách hàng lớn tại Nhật Bản bằng React, Next.js, Vue, Nuxt, GSAP và Three.js.",
+        "Front-End Developer với hơn 7 năm kinh nghiệm, trong đó nhiều năm xây dựng website cho các khách hàng lớn tại Nhật Bản bằng React, Next.js, Vue, Nuxt, GSAP và Three.js.",
     },
     nav: {
       about: "Giới thiệu",
@@ -133,7 +133,7 @@ export const DICTIONARIES: Localized<Dictionary> = {
       contact: "Liên hệ",
     },
     teamOf: (size) => `Team ${size} người`,
-    contactText: "Sẵn sàng cho các cơ hội Front-End / Fullstack. Hãy liên hệ với tôi.",
+    contactText: "Đang tìm vị trí Front-End. Cũng sẵn sàng nhận vị trí Fullstack — hãy liên hệ với tôi.",
     contactForm: {
       name: "Tên của bạn",
       email: "Email",

@@ -43,16 +43,19 @@ export type Experience = {
   stack: string[];
 };
 
-const DEVELOP_AND_MAINTAIN: Localized = { en: "Develop and maintain", ja: "開発・保守", vi: "Phát triển và bảo trì" };
 const OWNER: Localized = { en: "Owner (develop and maintain)", ja: "主担当（開発・保守）", vi: "Phụ trách chính (phát triển và bảo trì)" };
 
 export const PROFILE = {
   name: "Nguyen Trung Huy",
-  title: { en: "Front-End Developer", ja: "フロントエンドエンジニア", vi: "Front-End Developer" } satisfies Localized,
+  title: {
+    en: "Front-End Engineer (React/Next.js) — Corporate & Marketing Sites",
+    ja: "フロントエンドエンジニア（React/Next.js）— コーポレート・マーケティングサイト",
+    vi: "Front-End Engineer (React/Next.js) — Website doanh nghiệp & marketing",
+  } satisfies Localized,
   tagline: {
-    en: "7+ years building complex web experiences for Japanese clients with React, Next.js, Vue and Nuxt.",
-    ja: "React、Next.js、Vue、Nuxt を用いて、日本のクライアント向けに7年以上Webサイトを開発しています。",
-    vi: "Hơn 7 năm xây dựng các trải nghiệm web phức tạp cho khách hàng Nhật Bản với React, Next.js, Vue và Nuxt.",
+    en: "7+ years in front-end development, many of them building complex websites for Japanese clients with React, Next.js, Vue and Nuxt.",
+    ja: "フロントエンド開発歴7年以上。そのうち長年にわたり、React、Next.js、Vue、Nuxt を用いて日本のクライアント向けWebサイトを開発しています。",
+    vi: "Hơn 7 năm làm front-end, trong đó nhiều năm xây dựng các website phức tạp cho khách hàng Nhật Bản với React, Next.js, Vue và Nuxt.",
   } satisfies Localized,
   about: {
     en: "I build and maintain production websites for large Japanese clients, extend Contentful CMS, run CI/CD pipelines on GitHub, and craft interactive UI with GSAP and Three.js. Currently growing toward Fullstack development.",
@@ -67,41 +70,17 @@ export const PROFILE = {
 
 export const SKILLS: SkillGroup[] = [
   {
-    title: { en: "Frontend", ja: "フロントエンド", vi: "Frontend" },
-    items: [
-      "HTML5",
-      "CSS3",
-      "React",
-      "Next.js",
-      "Vue.js",
-      "Nuxt.js",
-      "Vite",
-      "React Native",
-      "Redux",
-      "Redux-Saga",
-      "Axios",
-      "Ant Design",
-      "Bootstrap",
-      "Tailwind CSS",
-      "SASS",
-    ],
-  },
-  { title: { en: "Animation & 3D", ja: "アニメーション・3D", vi: "Animation & 3D" }, items: ["GSAP", "Three.js", "Animate.js"] },
-  {
-    title: { en: "Backend & CMS", ja: "バックエンド・CMS", vi: "Backend & CMS" },
-    items: ["Node.js", "Next.js Route Handlers", "RESTful API", "GraphQL", "PostgreSQL", "Contentful (custom extensions)"],
+    title: { en: "Proficient", ja: "得意", vi: "Thành thạo" },
+    items: ["React", "Next.js", "GSAP", "Contentful (custom extensions)", "Three.js", "HTML5", "CSS3", "Tailwind CSS", "SASS"],
   },
   {
-    title: { en: "Quality & Performance", ja: "品質・パフォーマンス", vi: "Chất lượng & Hiệu năng" },
-    items: [
-      "Responsive Design",
-      "SEO Optimization",
-      "Accessibility (a11y)",
-      "Performance Tuning",
-      "Testing & Debugging",
-    ],
+    title: { en: "Used regularly", ja: "日常的に使用", vi: "Dùng thường xuyên" },
+    items: ["Vue.js", "Nuxt.js", "Vite", "Node.js", "RESTful API", "GitHub Actions", "Git", "Responsive Design", "SEO Optimization", "Accessibility (a11y)", "Performance Tuning"],
   },
-  { title: { en: "Workflow", ja: "ワークフロー", vi: "Quy trình" }, items: ["GitHub Actions", "Git", "Agile / Scrum"] },
+  {
+    title: { en: "Used before", ja: "使用経験あり", vi: "Từng dùng" },
+    items: ["React Native", "Redux", "Redux-Saga", "GraphQL", "PostgreSQL", "Ant Design", "Bootstrap", "Axios", "Animate.js"],
+  },
 ];
 
 export const PROJECTS: Project[] = [
@@ -131,7 +110,11 @@ export const PROJECTS: Project[] = [
       ja: "インタラクティブなセクションを多数備えた GO株式会社 のマーケティングサイト。",
       vi: "Website marketing của GO Inc. với nhiều section tương tác.",
     },
-    role: DEVELOP_AND_MAINTAIN,
+    role: {
+      en: "Develop and maintain: Contentful security fixes, news content model with auto-generated integer URLs, new content features, Contentful export to JSON/Markdown for the front-end",
+      ja: "開発・保守：Contentful のセキュリティ対応、ニュース用コンテンツモデル（連番による URL 自動生成）、コンテンツ機能の追加、フロントエンド向けの Contentful JSON/Markdown エクスポート",
+      vi: "Phát triển và bảo trì: sửa bảo mật Contentful, model content cho news với URL tự sinh theo số nguyên, viết thêm tính năng cho content, export Contentful ra JSON/Markdown cho front-end",
+    },
     teamSize: 5,
     stack: ["Next.js", "GSAP"],
     media: {
@@ -255,15 +238,15 @@ export const EXPERIENCES: Experience[] = [
     period: { en: "08/2020 – 12/2021", ja: "2020年8月 – 2021年12月", vi: "08/2020 – 12/2021" },
     highlights: {
       en: [
-        "Built Sale Admin, CCTV App, Platform Workflow and Internet Banking (Vue.js)",
+        "Built Sale Admin (real estate sales/business app), CCTV App (camera management with safe-zone detection), Platform Workflow and Internet Banking (Vue.js)",
         "Sliced responsive layouts and coordinated API/JSON contracts with back-end team",
       ],
       ja: [
-        "Sale Admin、CCTV アプリ、Platform Workflow、インターネットバンキングを開発（Vue.js）",
+        "Sale Admin（不動産販売・営業管理アプリ）、CCTV アプリ（カメラ管理・安全エリア検知）、Platform Workflow、インターネットバンキングを開発（Vue.js）",
         "レスポンシブレイアウトのコーディング、バックエンドチームとの API/JSON 仕様の調整",
       ],
       vi: [
-        "Xây dựng Sale Admin, CCTV App, Platform Workflow và Internet Banking (Vue.js)",
+        "Xây dựng Sale Admin (app bán bất động sản/kinh doanh), CCTV App (quản lý camera, phát hiện vùng an toàn), Platform Workflow và Internet Banking (Vue.js)",
         "Cắt layout responsive và thống nhất API/JSON contract với team back-end",
       ],
     },
@@ -274,57 +257,28 @@ export const EXPERIENCES: Experience[] = [
     position: "Front-End Developer",
     period: { en: "05/2019 – 08/2020", ja: "2019年5月 – 2020年8月", vi: "05/2019 – 08/2020" },
     highlights: {
-      en: ["Fixxy Admin Web with React.js + Ant Design", "Emartmall and ERP mobile apps with React Native"],
-      ja: ["React.js + Ant Design による Fixxy 管理画面", "React Native による Emartmall・ERP モバイルアプリ"],
-      vi: ["Fixxy Admin Web với React.js + Ant Design", "Ứng dụng di động Emartmall và ERP với React Native"],
+      en: ["Fixxy Admin Web (shop and member management) with React.js + Ant Design","Emartmall and ERP mobile apps with React Native"],
+      ja: ["React.js + Ant Design による Fixxy 管理画面（店舗・会員管理）","React Native による Emartmall・ERP モバイルアプリ"],
+      vi: ["Fixxy Admin Web (quản lý shop/thành viên) với React.js + Ant Design","Ứng dụng di động Emartmall và ERP với React Native"],
     },
     stack: ["React.js", "React Native", "Redux Saga"],
   },
   {
-    company: "Satra Food & Mon Hue",
-    position: "IT Support Staff",
-    period: { en: "2018 – 2019", ja: "2018年 – 2019年", vi: "2018 – 2019" },
+    company: "Satra Food & Mon Hue · Hoang Tin Company",
+    position: "IT Support & Hardware Technician",
+    period: { en: "2016 – 2019", ja: "2016年 – 2019年", vi: "2016 – 2019" },
     highlights: {
       en: [
-        "On-site IT support for retail store systems: POS, computers, printers and network",
-        "Handled store incidents to keep downtime short",
-        "Troubleshot network and Wi-Fi connectivity at store locations",
+        "Earlier career in IT support and hardware: store POS/network support, PC assembly, CCTV and peripherals",
       ],
       ja: [
-        "店舗システム（POS、PC、プリンター、ネットワーク）のオンサイト IT サポート",
-        "店舗での障害対応によるダウンタイムの最小化",
-        "店舗のネットワーク・Wi-Fi 接続のトラブルシューティング",
+        "初期キャリア：IT サポート・ハードウェア（店舗の POS・ネットワーク対応、PC 組立、CCTV・周辺機器）",
       ],
       vi: [
-        "Hỗ trợ IT tại cửa hàng cho hệ thống POS, máy tính, máy in và mạng",
-        "Xử lý sự cố tại cửa hàng để giảm thời gian gián đoạn",
-        "Khắc phục sự cố kết nối mạng và Wi-Fi tại các điểm bán",
+        "Giai đoạn đầu sự nghiệp về IT support và phần cứng: hỗ trợ POS/mạng tại cửa hàng, lắp ráp PC, CCTV và thiết bị ngoại vi",
       ],
     },
-    stack: ["POS", "Windows", "Printers", "Networking"],
-  },
-  {
-    company: "Hoang Tin Company",
-    position: "IT Hardware Technician",
-    period: { en: "2016 – 2018", ja: "2016年 – 2018年", vi: "2016 – 2018" },
-    highlights: {
-      en: [
-        "Assembled, installed and configured desktop computers for internal and client use",
-        "Installed and maintained CCTV camera systems",
-        "Set up and maintained printers and other office peripherals",
-      ],
-      ja: [
-        "社内・顧客向けデスクトップ PC の組立、設置、設定",
-        "防犯カメラ（CCTV）システムの設置・保守",
-        "プリンターなどオフィス周辺機器の設置・保守",
-      ],
-      vi: [
-        "Lắp ráp, cài đặt và cấu hình máy tính để bàn cho nội bộ và khách hàng",
-        "Lắp đặt và bảo trì hệ thống camera CCTV",
-        "Cài đặt và bảo trì máy in cùng các thiết bị văn phòng khác",
-      ],
-    },
-    stack: ["PC Assembly", "CCTV", "Printers", "Windows"],
+    stack: ["POS", "Networking", "CCTV"],
   },
 ];
 
