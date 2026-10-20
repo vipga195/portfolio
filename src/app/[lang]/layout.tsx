@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
     authors: [{ name: PROFILE.name, url: PROFILE.linkedin }],
     creator: PROFILE.name,
     alternates: {
-      canonical: localePath(lang),
+      // canonical: localePath(lang),
       languages: {
         ...Object.fromEntries(LOCALES.map((locale) => [locale, localePath(locale)])),
         "x-default": localePath(DEFAULT_LOCALE),

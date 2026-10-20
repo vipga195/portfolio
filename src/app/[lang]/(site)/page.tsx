@@ -8,6 +8,13 @@ import Section from "@/components/Section";
 import { EXPERIENCES, KNOWLEDGE_BASE, PROFILE, PROJECTS, SKILLS } from "@/data/profile";
 import { hasLocale } from "@/i18n/config";
 import { DICTIONARIES } from "@/i18n/dictionary";
+import { pageMetadata } from "@/lib/metadata";
+
+export const generateMetadata = pageMetadata({
+  path: "/",
+  type: "profile",
+  text: { en: DICTIONARIES.en.meta, ja: DICTIONARIES.ja.meta, vi: DICTIONARIES.vi.meta },
+});
 
 function Tags({ items }: { items: string[] }): React.JSX.Element {
   return (
