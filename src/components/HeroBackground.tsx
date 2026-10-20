@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { usePathname } from "next/navigation";
 
 import { BACKDROP_FADE, BURST_DURATION, getIntroBurst, getIntroPhase, setIntroPhase, subscribeIntro } from "@/lib/intro";
 import type { IntroState } from "./HeroScene";
@@ -29,8 +30,26 @@ export default function HeroBackground(): React.JSX.Element {
   const intro = useRef<IntroState>(
     getIntroPhase() === "loading" ? { active: false, settle: 0, burst: 0 } : { active: true, settle: 1, burst: 0 },
   );
+  const pathname = usePathname();
 
   useGSAP(() => {
+    const hasHero = document.querySelector(HERO_SELECTOR) !== null;
+    setPaused(!hasHero);
+    if (!hasHero) {
+      gsap.set(container.current, { opacity: 0 });
+      if (getIntroPhase() === "revealing") {
+        setIntroPhase("assembled");
+        setIntroPhase("settled");
+        return;
+      }
+      return subscribeIntro((phase) => {
+        if (phase === "revealing") {
+          setIntroPhase("assembled");
+          setIntroPhase("settled");
+        }
+      });
+    }
+
     gsap.fromTo(
       container.current,
       { opacity: MAX_OPACITY },
@@ -73,7 +92,7 @@ export default function HeroBackground(): React.JSX.Element {
     return subscribeIntro((phase) => {
       if (phase === "revealing") reveal();
     });
-  });
+  }, { dependencies: [pathname], revertOnUpdate: true });
 
   return (
     <div ref={container} aria-hidden className="pointer-events-none fixed inset-0 -z-10">
