@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --test \"test/**/*.test.ts\"",
-    "train": "node scripts/train.ts snake 50 ./tmp/q-test.json"
+    "train": "node scripts/train.ts snake 50 ./tmp/q-test.json",
+    "train:dqn": "node scripts/train-dqn.ts",
+    "compare": "node scripts/compare.ts snake"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

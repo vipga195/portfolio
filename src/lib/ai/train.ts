@@ -42,8 +42,9 @@ function runEpisode<S>(env: Env<S>, table: QTable, epsilon: number, options: Tra
   }
 }
 
-export function train<S>(env: Env<S>, options: TrainOptions, rng: () => number = Math.random): QTable {
-  const table = createQTable(env.stateCount, env.actionCount);
+export function train<S>(env: Env<S>, options: TrainOptions, rng: () => number = Math.random, initial?: QTable): QTable {
+  // Resume from a previous table when given, otherwise start from all zeros
+  const table = initial ?? createQTable(env.stateCount, env.actionCount);
   let total = 0;
   let best = 0;
 

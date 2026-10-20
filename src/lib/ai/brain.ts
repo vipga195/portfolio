@@ -30,6 +30,14 @@ export function toBrain(shape: BrainShape, table: QTable, episodes: number): Bra
   };
 }
 
+// Episodes already trained, read from a saved brain file (works for the Q-table and DQN formats).
+// 0 when the field is missing or invalid, so a resumed run never inherits a bogus count.
+export function brainEpisodes(input: unknown): number {
+  if (typeof input !== "object" || input === null) return 0;
+  const { episodes } = input as Partial<Record<keyof Brain, unknown>>;   // single field, checked below
+  return typeof episodes === "number" && Number.isInteger(episodes) && episodes >= 0 ? episodes : 0;
+}
+
 // A brain file is loaded over the network, so validate it against the game that wants to use it
 export function parseBrain(input: unknown, shape: BrainShape): QTable | null {
   if (typeof input !== "object" || input === null) return null;
