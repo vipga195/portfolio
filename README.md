@@ -55,3 +55,5 @@ University of Science (HCMUS) — Information Technology, 2013 – 2016
 ## About this site
 
 Tech stack, features and build/CI details: [docs/about-this-site.md](docs/about-this-site.md).
+
+Snake AI (Q-learning in the UI, experimental DQN with results and open work): [docs/snake-ai.md](docs/snake-ai.md).
