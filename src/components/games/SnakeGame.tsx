@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Direction, GameState } from "@/lib/game/snake";
-import { DEFAULT_GRID_SIZE, MAX_GRID_SIZE, MIN_GRID_SIZE, clampGridSize, createInitialState, step } from "@/lib/game/snake";
+import { MAX_GRID_SIZE, MIN_GRID_SIZE, clampGridSize, createInitialState, step } from "@/lib/game/snake";
 // AI
 import { parseBrain } from "@/lib/ai/brain";
 import type { QTable } from "@/lib/ai/qlearning";
@@ -108,6 +108,8 @@ export default function SnakeGame(): React.JSX.Element {
 
   const playing=running&&state.alive;
   const canvasSize=state.gridSize*CELL;
+  // With AI on, the game cannot start until the brain is loaded (otherwise the snake just drives straight)
+  const brainBlocked=aiOn&&brainStatus!=="ready";
 
   const changeGrid=useCallback((value: number): void => {
     const fresh=createInitialState(clampGridSize(value));   // clamp: never trust the input
@@ -120,6 +122,7 @@ export default function SnakeGame(): React.JSX.Element {
   }, []);
 
   const start=useCallback((): void => {
+    if (aiOnRef.current&&!brainRef.current) return;
     if (!currRef.current.alive) {
       const fresh=createInitialState(currRef.current.gridSize);
       sinceFoodRef.current=0
@@ -127,15 +130,15 @@ export default function SnakeGame(): React.JSX.Element {
       currRef.current=fresh;
       setState(fresh);
     }
-    dirRef.current="down";
+    // A fresh game heads "down"; resuming a paused game keeps the snake's own heading
+    dirRef.current=currRef.current.dir;
     setRunning(true);
   }, []);
 
-  const togglePause=(): void => {
-    setRunning((r) => {
-      return !r
-    })
-  };
+  const togglePause=useCallback((): void => {
+    // Never start a game with AI on before its brain is loaded
+    setRunning((r) => (r? false:!aiOnRef.current||brainRef.current!==null));
+  }, []);
 
   useEffect(() => {
     aiOnRef.current=aiOn;
@@ -158,7 +161,8 @@ export default function SnakeGame(): React.JSX.Element {
     if (playing) return;                         // while playing, the rAF loop owns drawing
     const ctx=canvasRef.current?.getContext("2d");
     if (!ctx) return;
-    draw(ctx, state, state, 1);                  // static frame: no interpolation
+    const curr=currRef.current;                  // not `state`: it only syncs on score/alive changes, so it lags while paused
+    draw(ctx, curr, curr, 1);                    // static frame: no interpolation
   }, [state, playing]);
 
   useEffect(() => {
@@ -175,7 +179,7 @@ export default function SnakeGame(): React.JSX.Element {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [togglePause]);
 
   useEffect(() => {
     if (!playing) return;
@@ -235,8 +239,8 @@ export default function SnakeGame(): React.JSX.Element {
           <div className="absolute inset-0 grid place-items-center rounded-xl bg-black/60">
             <div className="text-center">
               {!state.alive && <p className="mb-3 text-xl font-semibold">{state.won ? "You win!" : "Game over"}</p>}
-              <button type="button" onClick={start}
-                className="rounded-full bg-blue-600 px-6 py-2 font-medium text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400">
+              <button type="button" onClick={start} disabled={brainBlocked}
+                className="rounded-full bg-blue-600 px-6 py-2 font-medium text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-50">
                 {state.alive? "Start":"Restart"}
               </button>
             </div>
