@@ -8,6 +8,8 @@ export type TrainProgress = { episode: number; epsilon: number; avg: number; bes
 export type TrainContext<M> = {
   episodes: number;
   rng: () => number;
+  // Episodes between progress reports; default about episodes / 20
+  reportEvery?: number;
   onProgress?: (info: TrainProgress) => void;
   // Resume from a previously trained model
   initial?: M;

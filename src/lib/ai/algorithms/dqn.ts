@@ -98,7 +98,7 @@ export const dqnAlgorithm: Algorithm<DqnParams, Mlp> = {
     return { lr, gamma, batchSize, replaySize, hidden, warmupSteps, learnEvery, targetSyncEvery, epsilonStart, epsilonEnd, exploreFraction };
   },
   brainGameId,
-  train(game, params, { episodes, rng, onProgress, initial }) {
+  train(game, params, { episodes, rng, reportEvery, onProgress, initial }) {
     assertEpisodes(episodes);
     const env = toDenseEnv(game, brainGameId(game));
     // Train on a copy so the caller's model is never mutated. With `initial`, params.hidden is ignored: the net keeps its own shape.
@@ -107,7 +107,7 @@ export const dqnAlgorithm: Algorithm<DqnParams, Mlp> = {
       {
         ...params,
         episodes,
-        reportEvery: Math.max(1, Math.floor(episodes / 20)),
+        reportEvery: reportEvery ?? Math.max(1, Math.floor(episodes / 20)),
         onProgress,
       },
       rng,

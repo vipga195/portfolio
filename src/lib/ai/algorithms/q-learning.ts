@@ -59,7 +59,7 @@ export const qLearningAlgorithm: Algorithm<QLearningParams, QTable> = {
     return { alpha, gamma, epsilonStart, epsilonEnd, exploreFraction };
   },
   brainGameId,
-  train(game, params, { episodes, rng, onProgress, initial }) {
+  train(game, params, { episodes, rng, reportEvery, onProgress, initial }) {
     assertEpisodes(episodes);
     const env = toEnv(game, brainGameId(game));
     // Train on a copy so the caller's model is never mutated
@@ -69,7 +69,7 @@ export const qLearningAlgorithm: Algorithm<QLearningParams, QTable> = {
       {
         ...params,
         episodes,
-        reportEvery: Math.max(1, Math.floor(episodes / 20)),
+        reportEvery: reportEvery ?? Math.max(1, Math.floor(episodes / 20)),
         onProgress,
       },
       rng,

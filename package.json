@@ -11,7 +11,9 @@
     "train": "node scripts/train.ts snake 50 ./tmp/q-test.json",
     "train:dqn": "node scripts/train-dqn.ts",
     "compare": "node scripts/compare.ts snake",
-    "migrate": "node scripts/migrate.ts"
+    "migrate": "node scripts/migrate.ts",
+    "trainer": "node scripts/trainer.ts",
+    "enqueue": "node scripts/enqueue-job.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
