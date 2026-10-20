@@ -28,7 +28,7 @@ export function actionToDirection(heading: Direction, action: number): Direction
 }
 
 // Cells occupied by the snake. The game treats every segment (tail included) as an obstacle, so do the same here.
-function occupiedCells(state: GameState): Uint8Array {
+export function occupiedCells(state: GameState): Uint8Array {
   const occupied = new Uint8Array(state.gridSize * state.gridSize);
   for (const p of state.snake) occupied[p.y * state.gridSize + p.x] = 1;
   return occupied;
@@ -36,7 +36,7 @@ function occupiedCells(state: GameState): Uint8Array {
 
 // True when stepping in `dir` leads into a wall, the body, or a pocket with fewer free cells than the snake is long.
 // Flood fill from the next cell; it stops as soon as `snake.length` free cells are found, so it stays cheap in open space.
-function isCramped(state: GameState, occupied: Uint8Array, dir: Direction): boolean {
+export function isCramped(state: GameState, occupied: Uint8Array, dir: Direction): boolean {
   const { gridSize, snake } = state;
   const next: Point = { x: snake[0].x + VECTORS[dir].x, y: snake[0].y + VECTORS[dir].y };
   if (isOutOfBounds(next, gridSize) || occupied[next.y * gridSize + next.x]) return true;
