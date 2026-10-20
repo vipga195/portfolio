@@ -1,4 +1,4 @@
-import { hasLocale, Locale, Localized } from "@/i18n/config";
+import { hasLocale } from "@/i18n/config";
 import { DICTIONARIES } from "@/i18n/dictionary";
 import { PROFILE } from "@/data/profile";
 import { notFound } from "next/navigation";

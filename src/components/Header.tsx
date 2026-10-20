@@ -3,6 +3,7 @@ import type { Dictionary } from "@/i18n/dictionary";
 
 import LanguageSwitcher from "./LanguageSwitcher";
 import MobileMenu from "./MobileMenu";
+import NavLink from "./NavLink";
 
 type HeaderProps = {
   lang: Locale;
@@ -25,16 +26,16 @@ export default function Header({ lang, nav, languageLabel, menuLabel, closeMenuL
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-neutral-950/70 backdrop-blur">
       <nav className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
-        <a href="#" className="font-mono font-bold text-blue-400">
+        <NavLink hash="#" lang={lang} className="font-mono font-bold text-blue-400">
           huy.dev
-        </a>
+        </NavLink>
         <div className="flex items-center gap-3 md:gap-6">
           <ul className="hidden gap-6 text-sm text-neutral-300 md:flex">
             {navItems.map(({ href, label }) => (
               <li key={href}>
-                <a href={href} className="hover:text-white">
+                <NavLink hash={href} lang={lang} className="hover:text-white">
                   {label}
-                </a>
+                </NavLink>
               </li>
             ))}
           </ul>
