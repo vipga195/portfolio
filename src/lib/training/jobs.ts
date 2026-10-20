@@ -46,8 +46,36 @@ export type CancelOutcome = "cancelled" | "requested" | "noop" | "not-found";
 
 export const MAX_ERROR_LENGTH = 500;
 
+// Limits enforced atomically by enqueueWithQuota. Only untrusted (public) runs count toward the per-client and global caps.
+export type QuotaLimits = {
+  // Runs waiting in the queue, and queued + running
+  maxQueued: number;
+  maxActive: number;
+  // Public runs per client (ip_hash) and overall inside the rolling window
+  perClient: number;
+  global: number;
+  windowMs: number;
+};
+
+export type QuotaReason = "queue_full" | "client_limit" | "global_limit";
+
+export type QuotaResult = { ok: true; run: TrainingRun } | { ok: false; reason: QuotaReason };
+
+// A run for the public list: `evalOverall` is the benchmark average of a succeeded run
+export type ListedRun = { run: TrainingRun; evalOverall: number | null };
+
 export type JobStore = {
   enqueue(newRun: NewRun): Promise<TrainingRun>;
+  // Checks the limits and inserts in one atomic step. Checked in this order: global_limit, client_limit, queue_full.
+  enqueueWithQuota(newRun: NewRun, limits: QuotaLimits): Promise<QuotaResult>;
+  // Newest first; trusted (owner/CLI) runs are never listed
+  listPublicRuns(limit: number): Promise<ListedRun[]>;
+  // The stored brain JSON of a succeeded run, or null
+  getBrain(runId: number): Promise<unknown>;
+  // The brain as the JSON text to serve, only for a succeeded, non-trusted (public) run; null otherwise
+  getBrainText(runId: number): Promise<string | null>;
+  // The stored evaluation JSON of a succeeded run, or null
+  getEval(runId: number): Promise<unknown>;
   // Atomically moves the oldest queued run to running; null when none is queued or maxRunning runs are already running
   claimNext(workerId: string, options: { maxRunning: number }): Promise<TrainingRun | null>;
   // Only affects a running run
@@ -82,10 +110,16 @@ function featuresVersionOf(brain: unknown): number {
   throw new Error("brain has no integer featuresVersion");
 }
 
+function overallOf(evaluation: unknown): number | null {
+  if (typeof evaluation === "object" && evaluation !== null && "overall" in evaluation && typeof evaluation.overall === "number") return evaluation.overall;
+  return null;
+}
+
 export class MemoryJobStore implements JobStore {
   private runs: TrainingRun[] = [];
   private metrics = new Map<number, RunMetric[]>();
   private brains = new Map<number, BrainInfo>();
+  private brainData = new Map<number, { brain: unknown; eval: unknown }>();
   private nextId = 1;
   private now: () => number;
 
@@ -120,6 +154,41 @@ export class MemoryJobStore implements JobStore {
     return { ...run };
   }
 
+  async enqueueWithQuota(newRun: NewRun, limits: QuotaLimits): Promise<QuotaResult> {
+    const since = this.now() - limits.windowMs;
+    const recent = this.runs.filter((run) => !run.trusted && run.createdAt.getTime() > since);
+    if (recent.length >= limits.global) return { ok: false, reason: "global_limit" };
+    if (newRun.ipHash != null && recent.filter((run) => run.ipHash === newRun.ipHash).length >= limits.perClient) {
+      return { ok: false, reason: "client_limit" };
+    }
+    const queued = this.runs.filter((run) => run.status === "queued").length;
+    const running = this.runs.filter((run) => run.status === "running").length;
+    if (queued >= limits.maxQueued || queued + running >= limits.maxActive) return { ok: false, reason: "queue_full" };
+    return { ok: true, run: await this.enqueue(newRun) };
+  }
+
+  async listPublicRuns(limit: number): Promise<ListedRun[]> {
+    return this.runs
+      .filter((run) => !run.trusted)
+      .sort((a, b) => b.id - a.id)
+      .slice(0, limit)
+      .map((run) => ({ run: { ...run }, evalOverall: overallOf(this.brainData.get(run.id)?.eval) }));
+  }
+
+  async getBrainText(runId: number): Promise<string | null> {
+    const run = this.find(runId);
+    const stored = this.brainData.get(runId);
+    return run && run.status === "succeeded" && !run.trusted && stored ? JSON.stringify(stored.brain) : null;
+  }
+
+  async getBrain(runId: number): Promise<unknown> {
+    return this.brainData.get(runId)?.brain ?? null;
+  }
+
+  async getEval(runId: number): Promise<unknown> {
+    return this.brainData.get(runId)?.eval ?? null;
+  }
+
   async claimNext(workerId: string, { maxRunning }: { maxRunning: number }): Promise<TrainingRun | null> {
     if (this.runs.filter((run) => run.status === "running").length >= maxRunning) return null;
     const run = this.runs.find((r) => r.status === "queued");
@@ -149,6 +218,7 @@ export class MemoryJobStore implements JobStore {
   async complete(runId: number, input: CompleteInput): Promise<boolean> {
     const run = this.find(runId);
     if (run?.status !== "running") return false;
+    this.brainData.set(runId, { brain: input.brain, eval: input.eval ?? null });
     this.brains.set(runId, {
       sizeBytes: Buffer.byteLength(JSON.stringify(input.brain)),
       featuresVersion: featuresVersionOf(input.brain),
@@ -234,6 +304,8 @@ export class MemoryJobStore implements JobStore {
 
 // Arbitrary constant: serializes claimNext across workers so the maxRunning check cannot race
 const CLAIM_LOCK_KEY = 74_110_001;
+// Separate key: quota checks must not wait for claims
+const QUOTA_LOCK_KEY = 74_110_002;
 const LOCK_RETRIES = 50;
 const LOCK_RETRY_MS = 10;
 
@@ -316,6 +388,75 @@ export class PgJobStore implements JobStore {
       [newRun.game, newRun.algorithm, JSON.stringify(newRun.params ?? {}), newRun.episodesTotal, newRun.trusted ?? false, newRun.ipHash ?? null],
     );
     return mapRun(rows[0]);
+  }
+
+  async enqueueWithQuota(newRun: NewRun, limits: QuotaLimits): Promise<QuotaResult> {
+    const client = await this.pool.connect();
+    let failure: Error | undefined;
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock($1::bigint)", [QUOTA_LOCK_KEY]);
+      const active = await client.query<{ queued: string; active: string }>(
+        `SELECT count(*) FILTER (WHERE status = 'queued') AS queued, count(*) AS active
+         FROM training_runs WHERE status IN ('queued', 'running')`,
+      );
+      const recent = await client.query<{ total: string; mine: string }>(
+        `SELECT count(*) AS total, count(*) FILTER (WHERE ip_hash = $2) AS mine
+         FROM training_runs
+         WHERE trusted = false AND created_at > now() - ($1::double precision * interval '1 millisecond')`,
+        [limits.windowMs, newRun.ipHash ?? null],
+      );
+      let reason: QuotaReason | null = null;
+      if (Number(recent.rows[0].total) >= limits.global) reason = "global_limit";
+      else if (newRun.ipHash != null && Number(recent.rows[0].mine) >= limits.perClient) reason = "client_limit";
+      else if (Number(active.rows[0].queued) >= limits.maxQueued || Number(active.rows[0].active) >= limits.maxActive) reason = "queue_full";
+      if (reason) {
+        await client.query("ROLLBACK");
+        return { ok: false, reason };
+      }
+      const { rows } = await client.query<RunRow>(
+        `INSERT INTO training_runs (game, algorithm, params, episodes_total, trusted, ip_hash)
+         VALUES ($1, $2, $3::jsonb, $4, $5, $6) RETURNING ${RUN_COLUMNS}`,
+        [newRun.game, newRun.algorithm, JSON.stringify(newRun.params ?? {}), newRun.episodesTotal, newRun.trusted ?? false, newRun.ipHash ?? null],
+      );
+      await client.query("COMMIT");
+      return { ok: true, run: mapRun(rows[0]) };
+    } catch (error) {
+      failure = toError(error);
+      await rollbackQuietly(client);
+      throw error;
+    } finally {
+      client.release(failure);
+    }
+  }
+
+  async listPublicRuns(limit: number): Promise<ListedRun[]> {
+    const columns = RUN_COLUMNS.split(",").map((column) => `r.${column.trim()}`).join(", ");
+    const { rows } = await this.pool.query<RunRow & { eval_overall: number | null }>(
+      `SELECT ${columns}, CASE WHEN jsonb_typeof(b.eval->'overall') = 'number' THEN (b.eval->>'overall')::float8 END AS eval_overall
+       FROM training_runs r LEFT JOIN brains b ON b.run_id = r.id WHERE NOT r.trusted ORDER BY r.id DESC LIMIT $1`,
+      [limit],
+    );
+    return rows.map((row) => ({ run: mapRun(row), evalOverall: row.eval_overall }));
+  }
+
+  async getBrainText(runId: number): Promise<string | null> {
+    const { rows } = await this.pool.query<{ text: string }>(
+      `SELECT b.data::text AS text FROM brains b JOIN training_runs r ON r.id = b.run_id
+       WHERE b.run_id = $1 AND r.status = 'succeeded' AND NOT r.trusted`,
+      [runId],
+    );
+    return rows[0]?.text ?? null;
+  }
+
+  async getBrain(runId: number): Promise<unknown> {
+    const { rows } = await this.pool.query<{ data: unknown }>("SELECT data FROM brains WHERE run_id = $1", [runId]);
+    return rows[0]?.data ?? null;
+  }
+
+  async getEval(runId: number): Promise<unknown> {
+    const { rows } = await this.pool.query<{ eval: unknown }>("SELECT eval FROM brains WHERE run_id = $1", [runId]);
+    return rows[0]?.eval ?? null;
   }
 
   async claimNext(workerId: string, { maxRunning }: { maxRunning: number }): Promise<TrainingRun | null> {

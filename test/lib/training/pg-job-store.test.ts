@@ -141,6 +141,69 @@ describe("PgJobStore", () => {
     assert.equal(await store.requeue(999), false);
   });
 
+  it("enqueueWithQuota: 12 parallel calls with maxQueued 5 give exactly 5 ok and 7 queue_full", async () => {
+    await reset();
+    const limits = { maxQueued: 5, maxActive: 50, perClient: 100, global: 100, windowMs: 86_400_000 };
+    const results = await Promise.all(Array.from({ length: 12 }, (_, i) => store.enqueueWithQuota({ ...job, ipHash: `${i}`.padEnd(64, "0") }, limits)));
+    assert.equal(results.filter((r) => r.ok).length, 5);
+    assert.equal(results.filter((r) => !r.ok && r.reason === "queue_full").length, 7);
+  });
+
+  it("enqueueWithQuota: per-client and global limits, precedence, trusted runs ignored, rolling window", async () => {
+    await reset();
+    const base = { maxQueued: 50, maxActive: 50, perClient: 2, global: 4, windowMs: 86_400_000 };
+    const mine = { ...job, ipHash: "a".repeat(64) };
+    assert.equal((await store.enqueueWithQuota(mine, base)).ok, true);
+    assert.equal((await store.enqueueWithQuota(mine, base)).ok, true);
+    const third = await store.enqueueWithQuota(mine, base);
+    assert.deepEqual(third.ok ? null : third.reason, "client_limit");
+    assert.equal((await store.enqueueWithQuota({ ...job, ipHash: "b".repeat(64) }, base)).ok, true);
+    assert.equal((await store.enqueueWithQuota({ ...job, ipHash: "c".repeat(64) }, base)).ok, true);
+    const full = await store.enqueueWithQuota({ ...job, ipHash: "d".repeat(64) }, { ...base, maxQueued: 1 });
+    assert.deepEqual(full.ok ? null : full.reason, "global_limit");   // global wins over queue_full
+    await store.enqueue({ ...job, trusted: true });   // trusted runs do not count
+    const queueFull = await store.enqueueWithQuota({ ...job, ipHash: "d".repeat(64) }, { ...base, global: 100, maxQueued: 3 });
+    assert.deepEqual(queueFull.ok ? null : queueFull.reason, "queue_full");
+
+    await pool.query("UPDATE training_runs SET created_at = now() - interval '25 hours'");
+    assert.equal((await store.enqueueWithQuota(mine, { ...base, maxQueued: 50 })).ok, true);
+  });
+
+  it("listPublicRuns and getBrain/getEval round trip", async () => {
+    await reset();
+    const a = await store.enqueue(job);
+    const b = await store.enqueue(job);
+    await store.claimNext("w", { maxRunning: 1 });
+    await store.complete(a.id, { brain: { featuresVersion: 2, q: [1] }, eval: { overall: 4.5 }, episodes: 10 });
+    const listed = await store.listPublicRuns(10);
+    assert.deepEqual(listed.map((l) => l.run.id), [b.id, a.id]);
+    assert.equal(listed[0].evalOverall, null);
+    assert.equal(listed[1].evalOverall, 4.5);
+    assert.deepEqual(await store.getBrain(a.id), { featuresVersion: 2, q: [1] });
+    assert.deepEqual(await store.getEval(a.id), { overall: 4.5 });
+    assert.equal(await store.getBrain(b.id), null);
+    assert.equal((await store.listPublicRuns(1)).length, 1);
+  });
+
+  it("trusted runs are excluded from listPublicRuns and getBrainText; brain text equals SELECT data::text", async () => {
+    await reset();
+    const pub = await store.enqueue(job);
+    const trusted = await store.enqueue({ ...job, trusted: true });
+    await store.claimNext("w", { maxRunning: 5 });
+    await store.claimNext("w", { maxRunning: 5 });
+    const brain = { game: "snake", featuresVersion: 2, q: [0, 1.5, -2], nested: { a: 1, b: [1, 2] } };
+    await store.complete(pub.id, { brain, eval: { overall: 1 }, episodes: 10 });
+    await store.complete(trusted.id, { brain, eval: { overall: 1 }, episodes: 10 });
+    assert.deepEqual((await store.listPublicRuns(10)).map((l) => l.run.id), [pub.id]);
+    const text = await store.getBrainText(pub.id);
+    const stored = await pool.query<{ text: string }>("SELECT data::text AS text FROM brains WHERE run_id = $1", [pub.id]);
+    assert.equal(text, stored.rows[0].text);
+    assert.deepEqual(JSON.parse(text ?? "null"), brain);
+    assert.equal(await store.getBrainText(trusted.id), null);
+    const queued = await store.enqueue(job);
+    assert.equal(await store.getBrainText(queued.id), null);
+  });
+
   it("running migrations again applies nothing and schema_migrations has the rows", async () => {
     const client = new Client({ connectionString });
     await client.connect();
@@ -149,7 +212,7 @@ describe("PgJobStore", () => {
       assert.deepEqual(report.applied, []);
       assert.ok(report.skipped.includes("003_training.sql"));
       const rows = await client.query<{ name: string }>("SELECT name FROM schema_migrations ORDER BY name");
-      assert.deepEqual(rows.rows.map((r) => r.name), ["001_create_contact_messages.sql", "002_add_company_to_contact_messages.sql", "003_training.sql"]);
+      assert.deepEqual(rows.rows.map((r) => r.name), ["001_create_contact_messages.sql", "002_add_company_to_contact_messages.sql", "003_training.sql", "004_training_created_at_index.sql"]);
     } finally {
       await client.end();
     }

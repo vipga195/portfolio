@@ -152,3 +152,17 @@ describe("PgJobStore connection handling", () => {
     assert.deepEqual(released, [undefined]);
   });
 });
+
+describe("MemoryJobStore public views", () => {
+  it("listPublicRuns and getBrainText skip trusted runs", async () => {
+    const store = new MemoryJobStore();
+    const pub = await store.enqueue(job);
+    const trusted = await store.enqueue({ ...job, trusted: true });
+    await store.claimNext("w", { maxRunning: 5 });
+    await store.claimNext("w", { maxRunning: 5 });
+    for (const id of [pub.id, trusted.id]) await store.complete(id, { brain: { featuresVersion: 2 }, eval: { overall: 1 }, episodes: 10 });
+    assert.deepEqual((await store.listPublicRuns(10)).map((l) => l.run.id), [pub.id]);
+    assert.equal(await store.getBrainText(pub.id), '{"featuresVersion":2}');
+    assert.equal(await store.getBrainText(trusted.id), null);
+  });
+});
