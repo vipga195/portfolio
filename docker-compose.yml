@@ -10,6 +10,33 @@ services:
       db:
         condition: service_healthy
 
+  # CI must build the `trainer` stage of the Dockerfile and push it as this image before this service is started.
+  trainer:
+    image: ghcr.io/vipga195/portfolio-trainer:latest
+    container_name: portfolio-trainer
+    restart: unless-stopped
+    # Opt-in: a plain `docker compose pull` / `up -d` ignores this service until `--profile trainer` is given
+    profiles: ["trainer"]
+    # No env_file on purpose: the trainer must not receive the SMTP secrets.
+    # PG* variables instead of a URL: the password is used as-is, no URL-encoding needed.
+    environment:
+      PGHOST: db
+      PGUSER: portfolio
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: portfolio
+    depends_on:
+      db:
+        condition: service_healthy
+    cpus: "1.0"
+    mem_limit: 1g
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 40s
+
   db:
     image: postgres:17-alpine
     container_name: portfolio-db

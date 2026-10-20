@@ -41,3 +41,5 @@ Findings:
 - Wire a DQN brain into `SnakeGame.tsx` only if it clearly beats the Q-table (needs multiple seeds and fixed eval seeds).
 - Change one hyperparameter at a time from the run 1 baseline; try less frequent target sync (~2000 steps), reward/gradient clipping, and training on grids up to 40.
 - Pre-existing, unrelated review notes: `SnakeGame.tsx` moves with the default heading while the brain is loading; `Makefile` lacks `.PHONY: test`.
+
+See also: [training platform](training-platform.md) (job queue and trainer worker).
