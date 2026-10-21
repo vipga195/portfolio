@@ -17,6 +17,17 @@ export function encodeMoves(directions: readonly Direction[]): string {
   return directions.map((d) => DIRECTION_TO_CHAR[d]).join("");
 }
 
+// Inverse of encodeMoves; null when a character is not a move
+export function decodeMoves(moves: string): Direction[] | null {
+  const directions: Direction[] = [];
+  for (const char of moves) {
+    const direction = CHAR_TO_DIRECTION[char];
+    if (!direction) return null;
+    directions.push(direction);
+  }
+  return directions;
+}
+
 export type ReplayResult =
   | { ok: true; final: GameState; states: GameState[] }
   | { ok: false; reason: string };

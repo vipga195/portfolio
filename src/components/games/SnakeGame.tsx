@@ -8,8 +8,10 @@ import { MAX_GRID_SIZE, MIN_GRID_SIZE, clampGridSize, createInitialState, step }
 import { parseBrain } from "@/lib/ai/brain";
 import type { QTable } from "@/lib/ai/qlearning";
 import { snakeEnv, snakePickDirection, snakeStepLimit } from "@/lib/game/snake-env";
+// Learning from human games (all of it is optional and silent when the API is off)
+import { encodeRecordedMoves, loadPublishedBrain, recordMove, requestSession, submitMoves } from "@/lib/snake-learning/client";
 
-const CELL=20;
+const CELL=10;
 
 const BULGE_AMP=0.5;    // how much bigger the bulge gets
 const BULGE_WIDTH=2;    // how many segments the bump spreads over
@@ -58,8 +60,9 @@ function lerp(a: number, b: number, t: number): number {
 function draw(ctx: CanvasRenderingContext2D, prev: GameState, curr: GameState, alpha: number): void {
   const size=curr.gridSize*CELL;
   const cell=size/curr.gridSize;
+  const systemPrefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
   // 1. Background
-  ctx.fillStyle="#0a0a0a";
+  ctx.fillStyle=systemPrefersDark? "#616161":"#0a0a0a";
   ctx.fillRect(0, 0, size, size);
 
   // 2. Food
@@ -72,7 +75,6 @@ function draw(ctx: CanvasRenderingContext2D, prev: GameState, curr: GameState, a
 
   for (let i=curr.snake.length-1; i>=0; i--) {
     const seg=segAt(prev, curr, i, alpha, centers);
-
     // Connector between this segment and the next one toward the tail fills the corner gap;
     // always body color, otherwise the head looks two cells long
     if (i<curr.snake.length-1) {
@@ -101,6 +103,14 @@ export default function SnakeGame(): React.JSX.Element {
   const aiOnRef=useRef(false);
   const sinceFoodRef=useRef(0);
 
+  // Learning session of the current game: token + the direction requested on every tick
+  const tokenRef=useRef<string|null>(null);
+  const movesRef=useRef<Direction[]>([]);
+  const sessionTriedRef=useRef(false);   // a session was already requested (or skipped) for this game
+  const startingRef=useRef(false);       // blocks a second start while the session request is pending
+  const gameGenRef=useRef(0);            // bumped on grid change so a late session reply is dropped
+  const [starting, setStarting]=useState(false);
+
   const canvasRef=useRef<HTMLCanvasElement>(null);
   const dirRef=useRef<Direction>("down");
   const prevRef=useRef<GameState>(state)
@@ -109,7 +119,7 @@ export default function SnakeGame(): React.JSX.Element {
   const playing=running&&state.alive;
   const canvasSize=state.gridSize*CELL;
   // With AI on, the game cannot start until the brain is loaded (otherwise the snake just drives straight)
-  const brainBlocked=aiOn&&brainStatus!=="ready";
+  const brainBlocked=(aiOn&&brainStatus!=="ready")||starting;
 
   const changeGrid=useCallback((value: number): void => {
     const fresh=createInitialState(clampGridSize(value));   // clamp: never trust the input
@@ -117,14 +127,47 @@ export default function SnakeGame(): React.JSX.Element {
     prevRef.current=fresh;
     currRef.current=fresh;
     dirRef.current="down";
+    tokenRef.current=null;
+    movesRef.current=[];
+    sessionTriedRef.current=false;
+    gameGenRef.current++;
+    startingRef.current=false;
+    setStarting(false);
     setRunning(false);
     setState(fresh);
   }, []);
 
-  const start=useCallback((): void => {
+  const start=useCallback(async (): Promise<void> => {
     if (aiOnRef.current&&!brainRef.current) return;
+    if (startingRef.current) return;
     if (!currRef.current.alive) {
-      const fresh=createInitialState(currRef.current.gridSize);
+      sessionTriedRef.current=false;
+      tokenRef.current=null;
+      movesRef.current=[];
+    }
+    let fresh: GameState|null=null;
+    if (!currRef.current.alive) fresh=createInitialState(currRef.current.gridSize);
+    // A new game with AI off asks for a learning session; a failure just means no recording
+    if (!sessionTriedRef.current) {
+      sessionTriedRef.current=true;
+      if (!aiOnRef.current) {
+        const gen=gameGenRef.current;
+        const gridSize=(fresh??currRef.current).gridSize;
+        startingRef.current=true;
+        setStarting(true);
+        const session=await requestSession(gridSize);
+        startingRef.current=false;
+        setStarting(false);
+        if (gen!==gameGenRef.current) return;   // grid changed meanwhile: this reply is stale
+        if (aiOnRef.current&&!brainRef.current) return;   // AI was switched on while waiting and its brain is not loaded
+        if (session) {
+          fresh=createInitialState(gridSize, session.seed);
+          tokenRef.current=session.token;
+          movesRef.current=[];
+        }
+      }
+    }
+    if (fresh) {
       sinceFoodRef.current=0
       prevRef.current=fresh;
       currRef.current=fresh;
@@ -136,6 +179,7 @@ export default function SnakeGame(): React.JSX.Element {
   }, []);
 
   const togglePause=useCallback((): void => {
+    if (startingRef.current) return;   // a session request is pending: start() will begin the game
     // Never start a game with AI on before its brain is loaded
     setRunning((r) => (r? false:!aiOnRef.current||brainRef.current!==null));
   }, []);
@@ -145,10 +189,16 @@ export default function SnakeGame(): React.JSX.Element {
     if (!aiOn||brainRef.current) return;
     let cancelled=false;
     setBrainStatus("loading");
-    fetch("/brains/snake.json")
-      .then((res) => (res.ok? res.json():Promise.reject(new Error("bad status"))))
-      .then((json: unknown) => {
-        const table=parseBrain(json, snakeEnv);          // validates shape, never trust the file
+    // Published brain from the API first (validated like the static file), static file as the fallback
+    loadPublishedBrain(snakeEnv.featuresVersion)
+      .then((published) => {
+        const table=published===null? null:parseBrain(published, snakeEnv);
+        if (table) return table;
+        return fetch("/brains/snake.json")
+          .then((res) => (res.ok? res.json():Promise.reject(new Error("bad status"))))
+          .then((json: unknown) => parseBrain(json, snakeEnv));   // validates shape, never trust the file
+      })
+      .then((table) => {
         if (cancelled) return;
         brainRef.current=table;
         setBrainStatus(table? "ready":"error");
@@ -199,6 +249,10 @@ export default function SnakeGame(): React.JSX.Element {
         if (aiOnRef.current&&brainRef.current) {
           dirRef.current=snakePickDirection(brainRef.current, currRef.current);
         }
+        // Record the direction `step` is about to get; an AI-played (or unrecordable) game is never submitted
+        if (tokenRef.current&&(aiOnRef.current||!recordMove(movesRef.current, dirRef.current, currRef.current))) {
+          tokenRef.current=null;
+        }
 
         currRef.current=step(currRef.current, dirRef.current);
         sinceFoodRef.current=currRef.current.score!==prevRef.current.score? 0:sinceFoodRef.current+1;
@@ -208,6 +262,11 @@ export default function SnakeGame(): React.JSX.Element {
         acc-=TICK_MS;
 
         const { score, alive }=currRef.current;
+        if (!alive&&tokenRef.current) {
+          const token=tokenRef.current;
+          tokenRef.current=null;               // consumed: never submitted twice
+          void submitMoves(token, encodeRecordedMoves(movesRef.current));
+        }
         if (score!==prevRef.current.score||alive!==prevRef.current.alive) {
           setState(currRef.current);          // sync UI only when score/alive changed
         }
@@ -223,10 +282,31 @@ export default function SnakeGame(): React.JSX.Element {
 
 
   return (
-    <>
+    <div className="flex flex-col gap-10">
+      <div className="bg-[rgb(255_255_255/30%)] px-6 py-8 rounded-3xl">
+        <div>
+          <label className="mt-3 flex items-center gap-3 text-sm text-neutral-300">
+            Grid {state.gridSize}×{state.gridSize}
+            <input
+              type="range"
+              min={MIN_GRID_SIZE}
+              max={MAX_GRID_SIZE}
+              value={state.gridSize}
+              disabled={playing}
+              onChange={(e) => changeGrid(Number(e.target.value))}
+            />
+          </label>
+        </div>
+        <div>
+          <button type="button" onClick={() => setAiOn((v) => !v)} disabled={playing||starting}>
+            {aiOn? "AI: on":"AI: off"}
+          </button>
+          {aiOn&&brainStatus==="loading"&&<p>Loading brain…</p>}
+          {aiOn&&brainStatus==="error"&&<p role="alert">Could not load the AI brain.</p>}
+        </div>
+      </div>
 
-
-      <div className="relative w-full flex flex-col transition-all" style={{ maxWidth: canvasSize }}>
+      <div className="relative w-full flex flex-col transition-all " style={{ maxWidth: canvasSize }}>
         <canvas
           ref={canvasRef}
           width={canvasSize}
@@ -238,7 +318,7 @@ export default function SnakeGame(): React.JSX.Element {
         {!playing&&(
           <div className="absolute inset-0 grid place-items-center rounded-xl bg-black/60">
             <div className="text-center">
-              {!state.alive && <p className="mb-3 text-xl font-semibold">{state.won ? "You win!" : "Game over"}</p>}
+              {!state.alive&&<p className="mb-3 text-xl font-semibold">{state.won? "You win!":"Game over"}</p>}
               <button type="button" onClick={start} disabled={brainBlocked}
                 className="rounded-full bg-blue-600 px-6 py-2 font-medium text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-50">
                 {state.alive? "Start":"Restart"}
@@ -246,32 +326,7 @@ export default function SnakeGame(): React.JSX.Element {
             </div>
           </div>
         )}
-
-        <div className="absolute right-0 top-0 -translate-y-full bg-[rgb(0_0_0/30%)]">
-          <div>
-            <label className="mt-3 flex items-center gap-3 text-sm text-neutral-300">
-              Grid {state.gridSize}×{state.gridSize}
-              <input
-                type="range"
-                min={MIN_GRID_SIZE}
-                max={MAX_GRID_SIZE}
-                value={state.gridSize}
-                disabled={playing}
-                onChange={(e) => changeGrid(Number(e.target.value))}
-              />
-            </label>
-          </div>
-          <div>
-            <button type="button" onClick={() => setAiOn((v) => !v)} disabled={playing}>
-              {aiOn? "AI: on":"AI: off"}
-            </button>
-            {aiOn&&brainStatus==="loading"&&<p>Loading brain…</p>}
-            {aiOn&&brainStatus==="error"&&<p role="alert">Could not load the AI brain.</p>}
-          </div>
-        </div>
       </div>
-
-    </>
-
+    </div>
   );
 }

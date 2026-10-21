@@ -7,6 +7,16 @@ export type StepResult<S> = {
   done: boolean;
 };
 
+// One agent step: what it saw, what it did, what it got, and what it saw next.
+// Independent of the learning algorithm: a table agent applies updateQ to it, a DQN agent pushes it into a replay buffer.
+export type Transition<S> = {
+  state: S;
+  action: number;
+  reward: number;
+  next: S;
+  done: boolean;
+};
+
 // Method syntax on purpose: it lets an Env<SomeState> be stored in a registry typed Env<unknown>
 export type Env<S> = {
   // Stable id, also the brain file name (public/brains/<id>.json)

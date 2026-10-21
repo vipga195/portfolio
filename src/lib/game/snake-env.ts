@@ -27,6 +27,14 @@ export function actionToDirection(heading: Direction, action: number): Direction
   return heading;
 }
 
+// Inverse of actionToDirection: the relative action that produces `requested` while heading `heading`.
+// The game ignores a 180-degree reversal (the snake keeps going), so a reversal counts as going straight.
+export function directionToAction(heading: Direction, requested: Direction): number {
+  if (requested === LEFT_OF[heading]) return 1;
+  if (requested === RIGHT_OF[heading]) return 2;
+  return 0;
+}
+
 // Cells occupied by the snake. The game treats every segment (tail included) as an obstacle, so do the same here.
 export function occupiedCells(state: GameState): Uint8Array {
   const occupied = new Uint8Array(state.gridSize * state.gridSize);

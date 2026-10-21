@@ -44,7 +44,7 @@ export function updateQ(
   // table.values[i] += alpha * (target - table.values[i]);
   const before=table.values[i];
   table.values[i]+=alpha*(target-table.values[i]);
-  if (Math.abs(reward)>=10) {   // only eat (+10) and death (-10), otherwise there are millions of lines
-    console.log(`s=${state} a=${action} r=${reward} Q: ${before.toFixed(3)} -> ${table.values[i].toFixed(3)}`);
-  }
+  // if (Math.abs(reward)>=10) {   // only eat (+10) and death (-10), otherwise there are millions of lines
+  //   console.log(`s=${state} a=${action} r=${reward} Q: ${before.toFixed(3)} -> ${table.values[i].toFixed(3)}`);
+  // }
 }

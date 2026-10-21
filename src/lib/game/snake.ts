@@ -1,3 +1,8 @@
+import { nextRandom } from "../rng.ts";
+
+// Re-exported so existing imports of nextRandom from this file keep working
+export { nextRandom };
+
 export const DEFAULT_GRID_SIZE=20;
 export const MIN_GRID_SIZE=8;
 export const MAX_GRID_SIZE=40;
@@ -40,16 +45,6 @@ function samePoint(a: Point, b: Point): boolean {
 export function clampGridSize(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_GRID_SIZE;
   return Math.min(MAX_GRID_SIZE, Math.max(MIN_GRID_SIZE, Math.round(value)));
-}
-
-// mulberry32: a tiny seeded generator. Pure: the same seed always gives the same [value in [0, 1), nextSeed] pair,
-// on every browser and in Node (integer math only). Not cryptographic, it exists so games can be replayed.
-export function nextRandom(seed: number): [number, number] {
-  const next=(seed+0x6d2b79f5)>>>0;
-  let t=next;
-  t=Math.imul(t^(t>>>15), t|1);
-  t^=t+Math.imul(t^(t>>>7), t|61);
-  return [((t^(t>>>14))>>>0)/4294967296, next];
 }
 
 // Only used when a new game is created without an explicit seed; `step` never calls Math.random

@@ -212,7 +212,7 @@ describe("PgJobStore", () => {
       assert.deepEqual(report.applied, []);
       assert.ok(report.skipped.includes("003_training.sql"));
       const rows = await client.query<{ name: string }>("SELECT name FROM schema_migrations ORDER BY name");
-      assert.deepEqual(rows.rows.map((r) => r.name), ["001_create_contact_messages.sql", "002_add_company_to_contact_messages.sql", "003_training.sql", "004_training_created_at_index.sql"]);
+      assert.deepEqual(rows.rows.map((r) => r.name), ["001_create_contact_messages.sql", "002_add_company_to_contact_messages.sql", "003_training.sql", "004_training_created_at_index.sql", "005_learning.sql", "006_learning_indexes.sql"]);
     } finally {
       await client.end();
     }
