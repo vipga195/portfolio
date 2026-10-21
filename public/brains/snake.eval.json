@@ -1,0 +1,51 @@
+{
+  "game": "snake",
+  "seed": 20260101,
+  "games": 100,
+  "brains": [
+    {
+      "algorithm": "q-learning",
+      "brainGameId": "snake",
+      "featuresVersion": 2,
+      "episodes": 25000,
+      "variants": [
+        {
+          "label": "grid 8x8",
+          "avg": 20.69,
+          "best": 28,
+          "median": 21,
+          "games": 100
+        },
+        {
+          "label": "grid 12x12",
+          "avg": 38.73,
+          "best": 51,
+          "median": 40,
+          "games": 100
+        },
+        {
+          "label": "grid 20x20",
+          "avg": 75.62,
+          "best": 114,
+          "median": 76,
+          "games": 100
+        },
+        {
+          "label": "grid 30x30",
+          "avg": 105.52,
+          "best": 200,
+          "median": 97.5,
+          "games": 100
+        },
+        {
+          "label": "grid 40x40",
+          "avg": 126.14,
+          "best": 286,
+          "median": 116,
+          "games": 100
+        }
+      ],
+      "overall": 73.34
+    }
+  ]
+}

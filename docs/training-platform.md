@@ -113,6 +113,30 @@ Honest limits: (i) the global budgets cap total resource use, they do not guaran
 - Set `TRAINING_ENABLED=true` on the `portfolio` service only after the migration is applied and the trainer image is running.
 - Decide whether to set `TRAINING_IP_SALT`.
 
+## Training Lab page (phase 3b)
+
+`/games/snake/lab` (and `/ja/games/snake/lab`, `/vi/games/snake/lab`): pick an algorithm, episodes and a few settings, start a run, watch the learning curve, compare finished runs with the shipped brain.
+
+- **Flag:** the page answers 404 unless `TRAINING_ENABLED=true` (read per request: `dynamic = "force-dynamic"`), same flag as the API. It is `noindex, nofollow` and is not in `sitemap.ts`.
+- **Code:** server page `src/app/[lang]/(site)/games/snake/lab/page.tsx`; client components in `src/components/training/`; pure logic in `src/lib/training/{ui-schema,lab-model,lab-client}.ts` (unit-tested); texts in the `trainingLab` block of `src/i18n/dictionary.ts` (en, ja, vi). The client component reads its text from the dictionary itself because the block contains functions, which a server component cannot pass as props.
+- **Form limits** (`ui-schema.ts`): q-learning up to 20 000 episodes, dqn up to 5 000; tunable fields alpha, gamma, epsilonEnd, exploreFraction (q-learning) and lr, gamma, epsilonEnd, exploreFraction (dqn). A test checks every default/min/max against the algorithm's `parseParams`, so the form cannot drift from the API.
+- **Baseline row:** the table also shows the shipped Q-table, read from `public/brains/snake.eval.json` (a 404 simply hides the row). Regenerate it whenever `public/brains/snake.json` or the Snake encoding changes (about 6 s):
+
+  ```sh
+  node scripts/compare.ts snake --json public/brains/snake.eval.json
+  ```
+
+  A test fails if the file's `featuresVersion` or `episodes` no longer match `snake.json`, or its seed is not the shared benchmark seed.
+- **Polling and API cost.** All request timing lives in `src/lib/training/pollers.ts` (pure, simulated with a fake clock in `test/lib/training/pollers.test.ts`); the React component only wires it up.
+  - Run list: every 3 s while the latest list response contains a queued/running run (20 requests/min), otherwise every 10 s (6/min). Only the latest response decides the pace, so a run that fell out of the top 20 cannot keep the page polling fast (it is fetched once to learn its final status).
+  - Selected run: its detail every 5 s only while it is queued/running (12/min), plus one final fetch when it finishes. Finished details are cached. `not_found` and `disabled` stop the polling and show the message.
+  - Comparison runs: each selected, uncached run is fetched exactly once, one request at a time (3 requests on first load by default); failures retry after 4, 8 s and give up after 3 attempts with a per-row error and a Retry button; deselecting a run aborts only its request.
+  - Active tab total: 20 + 12 = 32 reads/min against the default per-client read budget of 60/min (list and detail share it), plus the 3 one-off comparison requests. The simulation test runs 5 minutes (one running run selected, 3 comparison runs, hide/show flapping, one 429 with `Retry-After: 20`) and measured 147 read requests with a peak of 35 per 60 s window; it asserts at most 50, and exactly one request per comparison run.
+  - A 429 on any read sets one shared block: nothing is sent until `Retry-After` has passed. After other errors the list backs off 4, 8, 16, then 30 s. A hidden tab sends nothing and aborts what is in flight. A request counts from the moment it starts, so rapid tab switching or refreshing after creating a run never exceeds the normal rate.
+  - Creating a run uses the separate POST budget; downloading a brain uses the brain budget. The global read budget (600/min) is used up by roughly 18 tabs polling at once.
+  - Two tabs from the same client reach 64/min and can see "too many requests" until the window rolls over (handled by the shared block, not fatal).
+- **Known limits.** Off Cloudflare (no `cf-connecting-ip`) every visitor shares the single `unknown` read bucket, so the per-client budget is effectively global there. The page was checked in a real browser only for the previous version; this version is covered by the unit tests above plus a second QA pass by the reviewer.
+
 ## Deploy checklist (prod host)
 
 The trainer shares CPU and RAM with jellyfin, qbittorrent and the other services on this host: keep the compose limits.

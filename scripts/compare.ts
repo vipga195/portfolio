@@ -1,6 +1,8 @@
 // Benchmarks every registered algorithm's saved brain on one game with the shared deterministic benchmark.
-// Usage: node scripts/compare.ts <game> [--games N] [--seed S]      e.g. node scripts/compare.ts snake
-import { existsSync, readFileSync } from "node:fs";
+// Usage: node scripts/compare.ts <game> [--games N] [--seed S] [--json <file>]      e.g. node scripts/compare.ts snake
+// --json writes the results as deterministic JSON (used for public/brains/snake.eval.json, the Training Lab baseline)
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 import { BENCHMARK_GAMES, BENCHMARK_SEED, benchmarkPolicy } from "../src/lib/ai/benchmark.ts";
 import type { BenchmarkResult } from "../src/lib/ai/benchmark.ts";
@@ -17,6 +19,13 @@ function numberFlag(args: string[], flag: string, fallback: number): number {
   return value;
 }
 
+// Metadata of a brain file for the JSON report; the file was already validated by algorithm.parse
+function brainMeta(json: unknown): { featuresVersion: number | null; episodes: number | null } {
+  const record = typeof json === "object" && json !== null ? (json as Record<string, unknown>) : {};   // fields checked below
+  const pick = (value: unknown): number | null => (typeof value === "number" && Number.isFinite(value) ? value : null);
+  return { featuresVersion: pick(record.featuresVersion), episodes: pick(record.episodes) };
+}
+
 function main(): void {
   const args = process.argv.slice(2);
   const game = args[0] ? getGame(args[0]) : undefined;
@@ -31,7 +40,16 @@ function main(): void {
     process.exit(1);
   }
 
+  const jsonAt = args.indexOf("--json");
+  const jsonFile = jsonAt === -1 ? null : (args[jsonAt + 1] ?? null);
+  // The value must exist and must not be another flag (otherwise "--json --games 5" would write a file named "--games")
+  if (jsonAt !== -1 && (!jsonFile || jsonFile.startsWith("--"))) {
+    console.error("--json needs a file path");
+    process.exit(1);
+  }
+
   const rows: { label: string; result: BenchmarkResult }[] = [];
+  const brains: unknown[] = [];
   for (const algorithm of Object.values(ALGORITHMS)) {
     const file = `public/brains/${algorithm.brainGameId(game)}.json`;
     let json: unknown = null;
@@ -47,7 +65,14 @@ function main(): void {
       console.log(`skip ${algorithm.id}: no valid brain at ${file}`);
       continue;
     }
-    rows.push({ label: algorithm.id, result: benchmarkPolicy(game, (rng) => algorithm.createPolicy(model, game, rng), { games, seed }) });
+    const result = benchmarkPolicy(game, (rng) => algorithm.createPolicy(model, game, rng), { games, seed });
+    rows.push({ label: algorithm.id, result });
+    brains.push({ algorithm: algorithm.id, brainGameId: algorithm.brainGameId(game), ...brainMeta(json), variants: result.variants, overall: result.overall });
+  }
+  if (jsonFile) {
+    mkdirSync(dirname(jsonFile), { recursive: true });
+    writeFileSync(jsonFile, `${JSON.stringify({ game: game.id, seed, games, brains }, null, 2)}\n`);
+    console.log(`wrote ${jsonFile}`);
   }
   if (rows.length === 0) return;
 
