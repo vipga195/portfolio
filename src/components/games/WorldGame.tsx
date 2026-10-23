@@ -3,14 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import TouchControls from "@/components/games/TouchControls";
-import { MAX_HP, MOVES, SUB } from "@/lib/game/fighter/frame-data";
-import { BIT } from "@/lib/game/fighter/inputs";
+import { MAX_HP, SUB } from "@/lib/game/fighter/frame-data";
 import type { InputMask } from "@/lib/game/fighter/inputs";
 import { DIR_COS, DIR_SIN, screenToWorldMask } from "@/lib/game/fighter/world/dirs";
+import { WEAPON_DURABILITY, WORLD_MOVES } from "@/lib/game/fighter/world/moves";
+import type { WeaponKind, WorldMoveId } from "@/lib/game/fighter/world/moves";
 import { npcStepWorld } from "@/lib/game/fighter/world/npc";
 import type { WorldNpcState } from "@/lib/game/fighter/world/npc";
-import { ARC_STEPS, WORLD_HEIGHT, WORLD_WIDTH, createWorldSession, stepWorld } from "@/lib/game/fighter/world/sim";
-import type { Actor, WorldState } from "@/lib/game/fighter/world/sim";
+import { WORLD_HEIGHT, WORLD_WIDTH, createWorldSession, stepWorld } from "@/lib/game/fighter/world/sim";
+import type { Actor, Item, WorldState } from "@/lib/game/fighter/world/sim";
+import { WBIT } from "@/lib/game/fighter/world/winputs";
 
 const W=800;
 const H=450;
@@ -21,20 +23,29 @@ const GRID=100;
 const HIP_H=26;
 const NECK_H=48;
 const HEAD_R=7;
-const HAND_H=34;
 const POLE_BACK=25;
-const POLE_LEN=90;
+const POLE_LEN: Record<WeaponKind, number>={ spear: 90, staff: 70 };
+const ITEM_HALF_LEN: Record<WeaponKind, number>={ spear: 40, staff: 28 };
 
 type Pt={ x: number; y: number };
 
 // Physical key codes, so WASD keeps its position on AZERTY and other layouts
 const KEY_BITS: Record<string, number>={
-  KeyA: BIT.LEFT, ArrowLeft: BIT.LEFT,
-  KeyD: BIT.RIGHT, ArrowRight: BIT.RIGHT,
-  KeyW: BIT.UP, ArrowUp: BIT.UP,
-  KeyS: BIT.DOWN, ArrowDown: BIT.DOWN,
-  KeyJ: BIT.THRUST, KeyK: BIT.SWEEP, KeyL: BIT.CHOP,
+  KeyA: WBIT.LEFT, ArrowLeft: WBIT.LEFT,
+  KeyD: WBIT.RIGHT, ArrowRight: WBIT.RIGHT,
+  KeyW: WBIT.UP, ArrowUp: WBIT.UP,
+  KeyS: WBIT.DOWN, ArrowDown: WBIT.DOWN,
+  KeyJ: WBIT.ATK_A, KeyK: WBIT.ATK_B, KeyL: WBIT.ATK_C,
+  ShiftLeft: WBIT.RUN, ShiftRight: WBIT.RUN,
+  KeyC: WBIT.CROUCH,
+  KeyE: WBIT.PICKUP,
 };
+
+const TOUCH_EXTRAS=[
+  { id: "run", label: "Run", bit: WBIT.RUN },
+  { id: "duck", label: "Crouch", bit: WBIT.CROUCH },
+  { id: "pickup", label: "Pick up", bit: WBIT.PICKUP },
+];
 
 function keyMask(keys: Set<string>): InputMask {
   let mask=0;
@@ -46,13 +57,13 @@ function lerp(a: number, b: number, t: number): number {
   return a+(b-a)*t;
 }
 
-// World pixels to isometric screen space (before the camera offset)
+// World pixels to a low, flat isometric screen space (before the camera offset)
 function isoX(x: number, y: number): number {
   return (x-y)*0.5;
 }
 
 function isoY(x: number, y: number): number {
-  return (x+y)*0.25;
+  return (x+y)*0.125;
 }
 
 function line(ctx: CanvasRenderingContext2D, pts: Pt[]): void {
@@ -62,18 +73,37 @@ function line(ctx: CanvasRenderingContext2D, pts: Pt[]): void {
   ctx.stroke();
 }
 
+type MoveKind="punch"|"kick"|"heavy"|"low"|"upper"|"spin"|"dash"|"thrust"|"sweep"|"chop";
+
+const MOVE_KIND: Record<WorldMoveId, MoveKind>={
+  punch: "punch", kick: "kick", heavy: "heavy", lowKick: "low", uppercut: "upper", spin: "spin", dash: "dash",
+  wThrust: "thrust", wSweep: "sweep", wChop: "chop", sThrust: "thrust", sSweep: "sweep", sChop: "chop",
+};
+
+// How far the striking limb is extended, 0 (rest) to 1 (full): winds up through startup, peaks in active, retracts in recovery
+function attackExt(a: Actor): number {
+  if (a.state!=="attack"||a.move===null) return 0;
+  const { startup, active, recovery }=WORLD_MOVES[a.move];
+  if (a.frame<startup) return 0.4*a.frame/startup;
+  if (a.frame<startup+active) return lerp(0.4, 1, (a.frame-startup+1)/active);
+  return 1-Math.min(1, (a.frame-startup-active)/recovery);
+}
+
 type PoleShape={ reach: number; tipLift: number; swing: number };
 
 // Pole pose from the attack phase: reach scales the length, tipLift raises the tip (screen px), swing rotates it (radians)
 function poleShape(a: Actor): PoleShape {
-  if (a.state!=="attack"||a.move===null) return { reach: 1, tipLift: -4, swing: 0 };
-  const { startup, active, recovery }=MOVES[a.move];
-  const arc=ARC_STEPS[a.move]*Math.PI/8;
-  const raised=a.move==="chop"? -70:a.move==="sweep"? -12:0;
-  const reach0=a.move==="thrust"? 0.7:1;
-  const reach1=a.move==="thrust"? 1.5:1.1;
-  const end: PoleShape={ reach: reach1, tipLift: a.move==="chop"? 24:raised/2, swing: a.move==="sweep"? arc:0 };
-  const cocked: PoleShape={ reach: reach0, tipLift: raised, swing: a.move==="sweep"? -arc:0 };
+  const rest: PoleShape={ reach: 1, tipLift: -4, swing: 0 };
+  if (a.state!=="attack"||a.move===null) return rest;
+  const kind=MOVE_KIND[a.move];
+  if (kind!=="thrust"&&kind!=="sweep"&&kind!=="chop") return rest;
+  const { startup, active, recovery, arcSteps }=WORLD_MOVES[a.move];
+  const arc=arcSteps*Math.PI/8;
+  const raised=kind==="chop"? -70:kind==="sweep"? -12:0;
+  const reach0=kind==="thrust"? 0.7:1;
+  const reach1=kind==="thrust"? 1.5:1.1;
+  const end: PoleShape={ reach: reach1, tipLift: kind==="chop"? 24:raised/2, swing: kind==="sweep"? arc:0 };
+  const cocked: PoleShape={ reach: reach0, tipLift: raised, swing: kind==="sweep"? -arc:0 };
   if (a.frame<startup) {
     const t=a.frame/startup;
     return { reach: lerp(1, cocked.reach, t), tipLift: lerp(-4, cocked.tipLift, t), swing: lerp(0, cocked.swing, t) };
@@ -107,7 +137,7 @@ function drawActor(ctx: CanvasRenderingContext2D, a: Actor, sx: number, sy: numb
   // Ground shadow
   ctx.fillStyle="rgba(0,0,0,0.18)";
   ctx.beginPath();
-  ctx.ellipse(0, 0, 16, 7, 0, 0, Math.PI*2);
+  ctx.ellipse(0, 0, 16, 4, 0, 0, Math.PI*2);
   ctx.fill();
 
   if (a.state==="dead") {
@@ -126,50 +156,131 @@ function drawActor(ctx: CanvasRenderingContext2D, a: Actor, sx: number, sy: numb
 
   if (a.invuln>0&&Math.floor(tick/4)%2===0) ctx.globalAlpha=0.3;
 
-  const lean=a.state==="hitstun"? -8:0;
-  const hip: Pt={ x: 0, y: -HIP_H };
-  const neck: Pt={ x: lean*fx, y: -NECK_H+lean*fy*0.5 };
-  const head: Pt={ x: neck.x+lean*fx*0.2, y: neck.y-HEAD_R-1 };
+  const kind=a.state==="attack"&&a.move!==null? MOVE_KIND[a.move]:null;
+  const e=attackExt(a);
+  const ducking=a.state==="crouch"||kind==="low"||kind==="upper"||a.state==="pickup";
+  const running=a.state==="run";
+  const moving=running||a.state==="walk";
 
-  // Legs: swing along the facing direction while walking
-  const swing=a.state==="walk"? Math.sin(tick*0.3)*9:0;
+  // Torso: crouching lowers the hips and neck, running and dashing lean forward, a hit leans back
+  const hipY=ducking? -HIP_H*0.6:-HIP_H;
+  const neckY=ducking? -NECK_H*0.7:-NECK_H;
+  let lean=a.state==="hitstun"? -8:running? 7:kind==="dash"? 10*e:kind==="kick"||kind==="heavy"? -6*e:0;
+  if (a.state==="pickup") lean=10*Math.sin(Math.min(1, a.frame/8)*Math.PI);
+  const hip: Pt={ x: 0, y: hipY };
+  const neck: Pt={ x: lean*fx, y: neckY+lean*fy*0.5 };
+  const head: Pt={ x: neck.x+lean*fx*0.2, y: neck.y-HEAD_R-1 };
+  const shoulder: Pt={ x: neck.x, y: neck.y+5 };
+
+  // Default limb swing along the facing direction while moving
+  const swing=moving? Math.sin(tick*(running? 0.5:0.3))*(running? 14:9):0;
   const stance=a.state==="attack"? 8:5;
-  const feet: Pt[]=[
-    { x: fx*(stance+swing), y: fy*(stance+swing)*0.6 },
-    { x: -fx*(stance+swing), y: -fy*(stance+swing)*0.6 },
-  ];
-  for (const foot of feet) line(ctx, [hip, { x: (hip.x+foot.x)/2, y: (hip.y+foot.y)/2 }, foot]);
+  const reach=(len: number): Pt => ({ x: fx*len, y: fy*len*0.5 });
+  let footA: Pt=reach(stance+swing);
+  let footB: Pt=reach(-(stance+swing));
+  let handA: Pt={ x: shoulder.x+fx*(6-swing*0.5), y: shoulder.y+11 };
+  let handB: Pt={ x: shoulder.x-fx*(6-swing*0.5), y: shoulder.y+11 };
+
+  if (kind==="punch") {
+    handA={ x: shoulder.x+fx*(8+28*e), y: shoulder.y+4 };
+    handB={ x: shoulder.x+fx*5, y: shoulder.y+7 };
+  } else if (kind==="upper") {
+    handA={ x: shoulder.x+fx*(8+10*e), y: shoulder.y+10-38*e };
+    handB={ x: shoulder.x+fx*4, y: shoulder.y+8 };
+  } else if (kind==="kick") {
+    footA={ x: fx*(8+34*e), y: fy*17*e+(hipY+6)*e };
+  } else if (kind==="heavy") {
+    footA={ x: fx*(6+30*e), y: fy*15*e+(neckY+12)*e };
+  } else if (kind==="low") {
+    footA={ x: fx*(10+36*e), y: fy*18*e-3 };
+  } else if (kind==="dash") {
+    footA={ x: fx*(8+34*e), y: fy*17*e+(hipY+16)*e };
+    handA={ x: shoulder.x-fx*8, y: shoulder.y+6 };
+    handB={ x: shoulder.x-fx*12, y: shoulder.y+9 };
+  } else if (kind==="spin") {
+    // The kicking leg and the lead hand orbit the body through one full circle over the move
+    const m=WORLD_MOVES.spin;
+    const th=Math.PI*2*a.frame/(m.startup+m.active+m.recovery);
+    footA={ x: Math.cos(th)*34, y: hipY+4+Math.sin(th)*7 };
+    handA={ x: shoulder.x-Math.cos(th)*14, y: shoulder.y+8-Math.sin(th)*3 };
+  }
+
+  const spinning=kind==="spin";
+  if (spinning) footB={ x: -footA.x*0.3, y: 0 };
+  for (const foot of [footA, footB]) line(ctx, [hip, { x: (hip.x+foot.x)/2+(ducking? fx*4:0), y: (hip.y+foot.y)/2 }, foot]);
 
   line(ctx, [hip, neck]);
   ctx.beginPath();
   ctx.arc(head.x, head.y, HEAD_R, 0, Math.PI*2);
   ctx.stroke();
 
-  // Pole: gripped at hand height, projected from the facing direction
-  const shape=poleShape(a);
-  const cs=Math.cos(shape.swing);
-  const sn=Math.sin(shape.swing);
-  const rx=ux*cs-uy*sn;
-  const ry=ux*sn+uy*cs;
-  const px=isoX(rx, ry);
-  const py=isoY(rx, ry);
-  const hand: Pt={ x: neck.x+fx*6, y: -HAND_H+fy*3 };
-  line(ctx, [{ x: neck.x, y: neck.y+5 }, hand]);
-  ctx.strokeStyle=poleColor;
-  ctx.lineWidth=3;
-  line(ctx, [
-    { x: hand.x-px*POLE_BACK, y: hand.y-py*POLE_BACK },
-    { x: hand.x+px*POLE_LEN*shape.reach, y: hand.y+py*POLE_LEN*shape.reach+shape.tipLift },
-  ]);
+  // Arms: elbow midway, a little lower than the straight line
+  for (const hand of [handA, handB]) line(ctx, [shoulder, { x: (shoulder.x+hand.x)/2, y: (shoulder.y+hand.y)/2+2 }, hand]);
 
-  // HP bar above the head
+  if (a.state==="pickup") {
+    // Hand reaches down toward the ground
+    handA={ x: shoulder.x+fx*10, y: -4 };
+    line(ctx, [shoulder, handA]);
+  }
+
+  // Held weapon: gripped in the lead hand, projected from the facing direction
+  if (a.weapon!==null) {
+    const shape=poleShape(a);
+    const cs=Math.cos(shape.swing);
+    const sn=Math.sin(shape.swing);
+    const rx=ux*cs-uy*sn;
+    const ry=ux*sn+uy*cs;
+    const px=isoX(rx, ry);
+    const py=isoY(rx, ry);
+    const grip: Pt=handA;
+    ctx.strokeStyle=poleColor;
+    ctx.lineWidth=3;
+    line(ctx, [
+      { x: grip.x-px*POLE_BACK, y: grip.y-py*POLE_BACK },
+      { x: grip.x+px*POLE_LEN[a.weapon]*shape.reach, y: grip.y+py*POLE_LEN[a.weapon]*shape.reach+shape.tipLift },
+    ]);
+  }
+
+  // HP bar above the head, weapon durability right under it
   const bw=30;
-  const by=head.y-HEAD_R-8;
+  const by=head.y-HEAD_R-9;
   ctx.globalAlpha=1;
   ctx.fillStyle=barBg;
   ctx.fillRect(-bw/2, by, bw, 4);
   ctx.fillStyle=fill;
   ctx.fillRect(-bw/2, by, bw*Math.max(0, a.hp)/MAX_HP, 4);
+  if (a.weapon!==null) {
+    ctx.fillStyle=barBg;
+    ctx.fillRect(-bw/2, by+5, bw, 2);
+    ctx.fillStyle="#f59e0b";
+    ctx.fillRect(-bw/2, by+5, bw*Math.max(0, a.durability)/WEAPON_DURABILITY[a.weapon], 2);
+  }
+  ctx.restore();
+}
+
+// A weapon lying on the ground: a line along the screen x axis with a pulsing highlight ring and a bright tip
+function drawItem(ctx: CanvasRenderingContext2D, item: Item, scr: (x: number, y: number) => Pt, color: string, tick: number): void {
+  const cx=item.x/SUB;
+  const cy=item.y/SUB;
+  const half=ITEM_HALF_LEN[item.kind]*Math.SQRT1_2;
+  const tail=scr(cx-half, cy+half);
+  const tip=scr(cx+half, cy-half);
+  const mid=scr(cx, cy);
+  ctx.save();
+  ctx.lineCap="round";
+  ctx.strokeStyle=color;
+  ctx.lineWidth=item.kind==="spear"? 3:4;
+  line(ctx, [tail, tip]);
+  ctx.fillStyle="#f59e0b";
+  ctx.beginPath();
+  ctx.arc(tip.x, tip.y, 3, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle="#f59e0b";
+  ctx.lineWidth=1.5;
+  ctx.globalAlpha=0.5+0.4*Math.sin(tick*0.1);
+  ctx.beginPath();
+  ctx.ellipse(mid.x, mid.y, 10+Math.sin(tick*0.1)*2, 4, 0, 0, Math.PI*2);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -198,6 +309,7 @@ function drawScene(ctx: CanvasRenderingContext2D, world: WorldState, dark: boole
 
   const poleColor=dark? "#d4d4d4":"#0a0a0a";
   const barBg=dark? "#525252":"#d4d4d4";
+  for (const item of world.items) drawItem(ctx, item, scr, poleColor, world.tick);
   const entries=[
     { a: player, color: dark? "#93c5fd":"#1d4ed8", fill: "#16a34a" },
     { a: general, color: dark? "#f87171":"#dc2626", fill: "#ea580c" },
@@ -317,12 +429,19 @@ export default function WorldGame(): React.JSX.Element {
         height={H}
         tabIndex={0}
         role="application"
-        aria-label="Stick fighter open world. Click to focus, then WASD or arrows move; J, K, L attack."
+        aria-label="Stick fighter open world. Click to focus, then WASD or arrows move; J punch, K kick, L heavy; Shift run; C crouch; E pick up or drop."
         className="aspect-video w-full rounded-xl border border-neutral-800 outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
       />
-      <TouchControls onChange={onTouch} moveLabels={{ left: "Left", right: "Right", up: "Up", down: "Down" }} />
+      <TouchControls
+        onChange={onTouch}
+        moveLabels={{ left: "Left", right: "Right", up: "Up", down: "Down" }}
+        attackLabels={["Punch", "Kick", "Heavy"]}
+        extraButtons={TOUCH_EXTRAS}
+      />
       <p className="text-center text-xs text-neutral-400">
-        Click the game, then WASD or arrows move · J thrust · K sweep · L chop
+        Click the game, then WASD or arrows move · Shift run · C crouch · E pick up / drop · J punch · K kick · L heavy
+        <br />
+        Combos: J J K chain · C+J uppercut · K+L spin kick · double-tap a direction then K = dash kick
       </p>
     </div>
   );
