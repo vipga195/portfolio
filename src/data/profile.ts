@@ -20,12 +20,16 @@ export type ProjectMedia = {
 export type Project = {
   name: string;
   url?: string;
+  // Site path (without locale prefix) of an in-site write-up of this project
+  caseStudy?: string;
   summary: Localized;
   role: Localized;
   teamSize: number;
   stack: string[];
   metrics?: ProjectMetric[];
   media?: ProjectMedia;
+  // Architecture diagram shown on the project's case study page
+  diagram?: { src: string; alt: Localized };
 };
 
 export type KnowledgeEntry = {
@@ -134,6 +138,8 @@ export const PROJECTS: Project[] = [
   },
   {
     name: "GO BUSINESS Support",
+    url: "https://support.go-business.jp/",
+    caseStudy: "/projects/go-business-support",
     summary: {
       en: "Customer support site for GO BUSINESS: Contentful-driven static site in a monorepo (5 apps + 1 shared package) for two user groups (admin / employee).",
       ja: "GO BUSINESS のカスタマーサポートサイト。Contentful 連携の静的サイトをモノレポ（5アプリ＋共通パッケージ1）で構築し、管理者／従業員の2種類のユーザーに提供。",
@@ -146,6 +152,20 @@ export const PROJECTS: Project[] = [
     },
     teamSize: 5,
     stack: ["Next.js", "Contentful", "Editor.js", "Docker", "GCP", "GitHub Actions"],
+    media: {
+      type: "video",
+      src: "/projects/go-business.mp4",
+      poster: "/projects/go-business-poster.jpg",
+      alt: { en: "GO BUSINESS Support site scroll demo", ja: "GO BUSINESS サポートサイトのスクロールデモ", vi: "Demo cuộn trang website GO BUSINESS Support" },
+    },
+    diagram: {
+      src: "/projects/go-business-architecture.png",
+      alt: {
+        en: "GO BUSINESS Support system architecture: Contentful, GitHub Actions CI/CD, Firebase Hosting and Cloud Run",
+        ja: "GO BUSINESS Support のシステム構成図：Contentful、GitHub Actions の CI/CD、Firebase Hosting、Cloud Run",
+        vi: "Sơ đồ kiến trúc GO BUSINESS Support: Contentful, CI/CD GitHub Actions, Firebase Hosting và Cloud Run",
+      },
+    },
   },
   {
     name: "Wonderia",

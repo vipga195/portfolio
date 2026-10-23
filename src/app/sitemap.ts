@@ -4,7 +4,7 @@ import { LOCALES, localizedPath } from "@/i18n/config";
 import { SITE_URL } from "@/lib/site";
 
 // Page paths without the locale prefix; add a new page here so it is listed in every locale
-const PAGES = ["/", "/games/snake"];
+const PAGES = ["/", "/games/snake", "/projects/go-business-support"];
 
 function absolute(path: string): string {
   return new URL(path, SITE_URL).toString();
