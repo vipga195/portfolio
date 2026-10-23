@@ -28,6 +28,8 @@ export type Project = {
   stack: string[];
   metrics?: ProjectMetric[];
   media?: ProjectMedia;
+  // Architecture diagram shown on the project's case study page
+  diagram?: { src: string; alt: Localized };
 };
 
 export type KnowledgeEntry = {
@@ -151,7 +153,12 @@ export const PROJECTS: Project[] = [
     teamSize: 5,
     stack: ["Next.js", "Contentful", "Editor.js", "Docker", "GCP", "GitHub Actions"],
     media: {
-      type: "image",
+      type: "video",
+      src: "/projects/go-business.mp4",
+      poster: "/projects/go-business-poster.jpg",
+      alt: { en: "GO BUSINESS Support site scroll demo", ja: "GO BUSINESS サポートサイトのスクロールデモ", vi: "Demo cuộn trang website GO BUSINESS Support" },
+    },
+    diagram: {
       src: "/projects/go-business-architecture.png",
       alt: {
         en: "GO BUSINESS Support system architecture: Contentful, GitHub Actions CI/CD, Firebase Hosting and Cloud Run",

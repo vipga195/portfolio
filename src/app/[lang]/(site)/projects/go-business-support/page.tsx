@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import LazyVideo from "@/components/LazyVideo";
 import { PROJECTS } from "@/data/profile";
 import { hasLocale, localizedPath, type Localized } from "@/i18n/config";
 import { pageMetadata } from "@/lib/metadata";
@@ -32,7 +33,7 @@ export default async function GoBusinessSupportPage({ params }: PageProps<"/[lan
 
   const project=PROJECTS.find(({ name }) => name===PROJECT_NAME);
   if (!project) notFound();
-  const { url, summary, role, stack, media }=project;
+  const { url, summary, role, stack, media, diagram }=project;
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-6 py-24">
@@ -53,11 +54,17 @@ export default async function GoBusinessSupportPage({ params }: PageProps<"/[lan
       )}
 
       {media&&(
+        <div className="relative mt-12 aspect-video overflow-hidden rounded-xl bg-neutral-900">
+          <LazyVideo src={media.src} poster={media.poster} label={media.alt[lang]} className="h-full w-full object-cover" />
+        </div>
+      )}
+
+      {diagram&&(
         <section className="mt-12">
           <h2 className="mb-4 text-xl font-semibold text-blue-400">{LABELS.architecture[lang]}</h2>
           <Image
-            src={media.src}
-            alt={media.alt[lang]}
+            src={diagram.src}
+            alt={diagram.alt[lang]}
             width={2480}
             height={1395}
             sizes="(min-width: 1024px) 960px, 100vw"
