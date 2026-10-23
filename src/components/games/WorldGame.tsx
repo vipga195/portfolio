@@ -1,15 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import TouchControls from "@/components/games/TouchControls";
 import { MAX_HP, MOVES, SUB } from "@/lib/game/fighter/frame-data";
 import { BIT } from "@/lib/game/fighter/inputs";
 import type { InputMask } from "@/lib/game/fighter/inputs";
-import { DIR_COS, DIR_SIN } from "@/lib/game/fighter/world/dirs";
-import { createWorldNpc, npcStepWorld } from "@/lib/game/fighter/world/npc";
+import { DIR_COS, DIR_SIN, screenToWorldMask } from "@/lib/game/fighter/world/dirs";
+import { npcStepWorld } from "@/lib/game/fighter/world/npc";
 import type { WorldNpcState } from "@/lib/game/fighter/world/npc";
-import { ARC_STEPS, WORLD_HEIGHT, WORLD_WIDTH, createWorld, stepWorld } from "@/lib/game/fighter/world/sim";
+import { ARC_STEPS, WORLD_HEIGHT, WORLD_WIDTH, createWorldSession, stepWorld } from "@/lib/game/fighter/world/sim";
 import type { Actor, WorldState } from "@/lib/game/fighter/world/sim";
 
 const W=800;
@@ -214,8 +214,9 @@ function isTypingTarget(target: EventTarget|null): boolean {
 
 export default function WorldGame(): React.JSX.Element {
   const canvasRef=useRef<HTMLCanvasElement>(null);
-  const worldRef=useRef<WorldState>(createWorld(1));
-  const npcRef=useRef<WorldNpcState>(createWorldNpc(1));
+  const [session]=useState(() => createWorldSession(1));
+  const worldRef=useRef<WorldState>(session.world);
+  const npcRef=useRef<WorldNpcState>(session.npc);
   const keysRef=useRef<Set<string>>(new Set());
   const touchRef=useRef<InputMask>(0);
   const darkRef=useRef(false);
@@ -261,7 +262,7 @@ export default function WorldGame(): React.JSX.Element {
         const world=worldRef.current;
         const [mask, npc]=npcStepWorld(npcRef.current, world);
         npcRef.current=npc;
-        worldRef.current=stepWorld(world, [keyMask(keysRef.current)|touchRef.current, mask]);
+        worldRef.current=stepWorld(world, [screenToWorldMask(keyMask(keysRef.current)|touchRef.current), mask]);
         acc-=STEP_MS;
       }
       drawScene(ctx, worldRef.current, darkRef.current);

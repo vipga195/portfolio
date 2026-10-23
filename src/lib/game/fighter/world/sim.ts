@@ -4,6 +4,7 @@ import { BIT, has } from '../inputs.ts';
 import type { InputMask } from '../inputs.ts';
 import { DIR_COS, DIR_COUNT, DIR_SIN, dirFromVector } from './dirs.ts';
 import { createWorldNpc, npcStepWorld } from './npc.ts';
+import type { WorldNpcState } from './npc.ts';
 
 export type WorldMoveId = 'thrust' | 'sweep' | 'chop';
 export type ActorStateName = 'idle' | 'walk' | 'attack' | 'hitstun' | 'dead';
@@ -226,10 +227,16 @@ export function hashWorld(state: WorldState): number {
   return h >>> 0;
 }
 
+// World plus its NPC, seeded the same way for the live game and for replays.
+export function createWorldSession(seed: number): { world: WorldState; npc: WorldNpcState } {
+  return { world: createWorld(seed), npc: createWorldNpc((seed ^ NPC_SEED_XOR) >>> 0) };
+}
+
 // Runs one frame per player input; the general is driven by the level-1 NPC.
 export function simulateWorld(seed: number, playerInputs: InputMask[]): WorldState {
-  let state = createWorld(seed);
-  let npc = createWorldNpc((seed ^ NPC_SEED_XOR) >>> 0);
+  const session = createWorldSession(seed);
+  let state = session.world;
+  let npc = session.npc;
   for (const mask of playerInputs) {
     const [npcMask, nextNpc] = npcStepWorld(npc, state);
     npc = nextNpc;

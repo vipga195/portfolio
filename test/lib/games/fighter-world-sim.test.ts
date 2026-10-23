@@ -5,6 +5,7 @@ import { MAX_HP, MOVES, SUB } from '../../../src/lib/game/fighter/frame-data.ts'
 import { BIT } from '../../../src/lib/game/fighter/inputs.ts';
 import type { InputMask } from '../../../src/lib/game/fighter/inputs.ts';
 import { hashFight, simulate } from '../../../src/lib/game/fighter/sim.ts';
+import { screenToWorldMask } from '../../../src/lib/game/fighter/world/dirs.ts';
 import { createWorldNpc, npcStepWorld } from '../../../src/lib/game/fighter/world/npc.ts';
 import {
   INVULN_FRAMES,
@@ -12,6 +13,7 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
   createWorld,
+  createWorldSession,
   hashWorld,
   simulateWorld,
   stepWorld,
@@ -150,6 +152,38 @@ describe('bounds and integers', () => {
       }
       assert.ok(Number.isInteger(s.rng) && Number.isInteger(s.tick));
     }
+  });
+});
+
+describe('screen-relative input', () => {
+  test('maps screen directions onto the rotated iso world axes', () => {
+    assert.equal(screenToWorldMask(BIT.UP), BIT.LEFT | BIT.UP);
+    assert.equal(screenToWorldMask(BIT.DOWN), BIT.RIGHT | BIT.DOWN);
+    assert.equal(screenToWorldMask(BIT.RIGHT), BIT.RIGHT | BIT.UP);
+    assert.equal(screenToWorldMask(BIT.LEFT), BIT.LEFT | BIT.DOWN);
+    assert.equal(screenToWorldMask(BIT.UP | BIT.RIGHT), BIT.UP);
+    assert.equal(screenToWorldMask(BIT.DOWN | BIT.LEFT), BIT.DOWN);
+    assert.equal(screenToWorldMask(BIT.UP | BIT.DOWN), 0);
+  });
+
+  test('keeps attack bits and ignores empty input', () => {
+    assert.equal(screenToWorldMask(0), 0);
+    assert.equal(screenToWorldMask(BIT.THRUST | BIT.UP), BIT.THRUST | BIT.LEFT | BIT.UP);
+  });
+});
+
+describe('live session matches replay', () => {
+  test('stepping a session by hand gives the same hash as simulateWorld', () => {
+    const inputs = randomStream(11, 600);
+    const session = createWorldSession(1);
+    let world = session.world;
+    let npc = session.npc;
+    for (const mask of inputs) {
+      const [npcMask, nextNpc] = npcStepWorld(npc, world);
+      npc = nextNpc;
+      world = stepWorld(world, [mask, npcMask]);
+    }
+    assert.equal(hashWorld(world), hashWorld(simulateWorld(1, inputs)));
   });
 });
 
