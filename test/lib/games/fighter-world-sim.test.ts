@@ -115,7 +115,7 @@ describe('world determinism', () => {
       else if (phase < 90) script.push(phase % 6 < 3 ? B | C : WBIT.CROUCH | A);
       else script.push(phase % 5 === 0 ? C : WBIT.UP);
     }
-    assert.equal(hashWorld(simulateWorld(42, script)), 2415678852); // re-baselined when skill state and rollCd joined the hash; end state pinned below
+    assert.equal(hashWorld(simulateWorld(42, script)), 1491585796); // re-baselined when the projectile skills added two cooldown slots; end state pinned below
   });
 
   // Pins the observable end state of the same script, so a hash re-baseline cannot hide a behavior change.
@@ -787,6 +787,90 @@ describe('command skills', () => {
     assert.equal(JSON.stringify(w), snapshot);
     assert.notEqual(hashWorld(next), hashWorld({ ...next, player: { ...next.player, cmdTok: [-1, -1, -1] } }));
     assert.notEqual(hashWorld(w), hashWorld({ ...w, player: { ...w.player, stamina: w.player.stamina - 1 } }));
+  });
+});
+
+describe('projectile skills', () => {
+  const R = WBIT.RIGHT;
+  const CR = WBIT.CROUCH;
+  const FIREBALL_CMD = [CR, 0, R | A];
+  const WAVE_CMD = [CR, 0, R | B];
+
+  function skilled(gx: number): WorldState {
+    const w = placed(300, 600, 0, gx, 600);
+    return { ...w, player: { ...w.player, skills: true } };
+  }
+
+  function feed(start: WorldState, masks: InputMask[]): WorldState {
+    let s = start;
+    for (const m of masks) s = stepWorld(s, [m, 0]);
+    return s;
+  }
+
+  test('crouch, toward + J casts a fireball and K casts a slash wave', () => {
+    const f = feed(skilled(1500), FIREBALL_CMD);
+    assert.equal(f.player.move, 'fireball');
+    assert.equal(f.player.stamina, 1000 - 250);
+    assert.equal(f.player.cd[2], 45);
+    const w = feed(skilled(1500), WAVE_CMD);
+    assert.equal(w.player.move, 'wave');
+    assert.equal(w.player.stamina, 1000 - 300);
+    assert.equal(w.player.cd[3], 90);
+  });
+
+  test('the projectile spawns on the first active frame and flies forward', () => {
+    let s = feed(skilled(1500), FIREBALL_CMD);
+    assert.equal(s.projectiles.length, 0);
+    s = run(s, 0, WORLD_MOVES.fireball.startup);
+    assert.equal(s.projectiles.length, 1);
+    const p = s.projectiles[0];
+    assert.equal(p.owner, 0);
+    assert.equal(p.move, 'fireball');
+    const x0 = p.x;
+    s = run(s, 0, 5);
+    assert.equal(s.projectiles[0].x - x0, 5 * 6 * SUB);
+  });
+
+  test('the cast itself deals no melee damage', () => {
+    const s = feed(skilled(330), FIREBALL_CMD);
+    const early = run(s, 0, WORLD_MOVES.fireball.startup - 1);
+    assert.equal(early.general.hp, MAX_HP);
+  });
+
+  test('a fireball hits once and is consumed', () => {
+    let s = feed(skilled(600), FIREBALL_CMD);
+    s = run(s, 0, 80);
+    assert.equal(s.general.hp, MAX_HP - WORLD_MOVES.fireball.damage);
+    assert.equal(s.projectiles.length, 0);
+  });
+
+  test('a slash wave passes through the target after hitting it once', () => {
+    let s = feed(skilled(600), WAVE_CMD);
+    s = run(s, 0, 100);
+    assert.equal(s.general.hp, MAX_HP - WORLD_MOVES.wave.damage);
+    assert.equal(s.projectiles.length, 0);
+  });
+
+  test('a projectile expires after its lifetime and never hits an out-of-range target', () => {
+    let s = feed(skilled(1500), FIREBALL_CMD);
+    s = run(s, 0, 100);
+    assert.equal(s.general.hp, MAX_HP);
+    assert.equal(s.projectiles.length, 0);
+  });
+
+  test('a rolling target is untouchable inside the roll safe window', () => {
+    let s = feed(skilled(600), FIREBALL_CMD);
+    s = { ...s, general: { ...s.general, state: 'roll', frame: 0 } };
+    s = run(s, 0, 4);
+    assert.equal(s.general.hp, MAX_HP);
+  });
+
+  test('projectiles are part of the hash and a step never mutates its input', () => {
+    const s = run(feed(skilled(1500), FIREBALL_CMD), 0, WORLD_MOVES.fireball.startup);
+    const snapshot = JSON.stringify(s);
+    stepWorld(s, [0, 0]);
+    assert.equal(JSON.stringify(s), snapshot);
+    assert.notEqual(hashWorld(s), hashWorld({ ...s, projectiles: [] }));
   });
 });
 

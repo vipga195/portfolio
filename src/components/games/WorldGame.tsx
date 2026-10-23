@@ -8,14 +8,15 @@ import type { InputMask } from "@/lib/game/fighter/inputs";
 import { ARCHETYPES, LEVELS } from "@/lib/game/fighter/world/archetypes";
 import type { Archetype, Level } from "@/lib/game/fighter/world/archetypes";
 import { DIR_COS, DIR_SIN } from "@/lib/game/fighter/world/dirs";
-import { WEAPON_DURABILITY, WORLD_MOVES } from "@/lib/game/fighter/world/moves";
+import { PROJECTILE_DEFS, WEAPON_DURABILITY, WORLD_MOVES, isProjectileMove } from "@/lib/game/fighter/world/moves";
 import type { WeaponKind, WorldMoveId } from "@/lib/game/fighter/world/moves";
 import { createBrainNpc, defaultEpsilon, npcStepBrain, parseFighterBrain } from "@/lib/game/fighter/world/npc-brain";
 import type { BrainNpcState, FighterBrain } from "@/lib/game/fighter/world/npc-brain";
 import { npcStepWorld } from "@/lib/game/fighter/world/npc";
 import type { WorldNpcState } from "@/lib/game/fighter/world/npc";
+import { MAX_STAMINA, SKILL_DEFS } from "@/lib/game/fighter/world/skills";
 import { WORLD_HEIGHT, WORLD_WIDTH, createWorldSession, stepWorld } from "@/lib/game/fighter/world/sim";
-import type { Actor, Item, WorldState } from "@/lib/game/fighter/world/sim";
+import type { Actor, Item, Projectile, WorldState } from "@/lib/game/fighter/world/sim";
 import { WBIT } from "@/lib/game/fighter/world/winputs";
 
 const W=800;
@@ -51,6 +52,13 @@ const TOUCH_EXTRAS=[
   { id: "pickup", label: "Pick up", bit: WBIT.PICKUP },
 ];
 
+const TOUCH_CASTS=[
+  { id: "fireball", label: "Fireball" },
+  { id: "wave", label: "Slash wave" },
+  { id: "blink", label: "Blink" },
+  { id: "burst", label: "Burst" },
+];
+
 const SKILLS: { name: string; keys: string; desc: string }[]=[
   { name: "Chain", keys: "J, J, K", desc: "Third hit does +30% damage and extra knockback; each link must hit to cancel" },
   { name: "Uppercut", keys: "C + J", desc: "Crouching launcher, high damage" },
@@ -59,7 +67,28 @@ const SKILLS: { name: string; keys: string; desc: string }[]=[
   { name: "Low kick", keys: "C + K", desc: "Low-level attack" },
   { name: "Roll", keys: "Shift + C + a direction", desc: "Dodge roll, untouchable at the start, short cooldown" },
   { name: "Weapon toss", keys: "J + K while armed", desc: "Throws the held weapon for 90 damage at long range; it lands on the ground" },
+  { name: "Fireball", keys: "C, → (facing), J", desc: "Ranged shot, 250 stamina, 45 frame cooldown; dodge it with a roll" },
+  { name: "Slash wave", keys: "C, → (facing), K", desc: "Piercing wave, 300 stamina, 90 frame cooldown" },
+  { name: "Blink strike", keys: "← (back), → (facing), L", desc: "Lunging slash, 400 stamina, 240 frame cooldown" },
+  { name: "Burst", keys: "C, C, L", desc: "Shockwave all around, 450 stamina, 300 frame cooldown" },
 ];
+
+// Frame-by-frame masks that perform each skill command, for the touch quick-cast buttons ("toward" = the facing)
+function castMasks(id: string, dir: number): number[] {
+  const bits=(d: number): number => {
+    const dx=Math.round(DIR_COS[d]/256);
+    const dy=Math.round(DIR_SIN[d]/256);
+    return (dx>0? WBIT.RIGHT:dx<0? WBIT.LEFT:0)|(dy>0? WBIT.DOWN:dy<0? WBIT.UP:0);
+  };
+  const toward=bits(dir);
+  switch (id) {
+    case "fireball": return [WBIT.CROUCH, 0, toward|WBIT.ATK_A];
+    case "wave": return [WBIT.CROUCH, 0, toward|WBIT.ATK_B];
+    case "blink": return [bits((dir+8)%16), toward|WBIT.ATK_C];
+    case "burst": return [WBIT.CROUCH, 0, WBIT.CROUCH|WBIT.ATK_C];
+    default: return [];
+  }
+}
 
 function keyMask(keys: Set<string>): InputMask {
   let mask=0;
@@ -104,7 +133,7 @@ const MOVE_KIND: Record<WorldMoveId, MoveKind>={
   punch: "punch", kick: "kick", heavy: "heavy", lowKick: "low", uppercut: "upper", spin: "spin", dash: "dash",
   wThrust: "thrust", wSweep: "sweep", wChop: "chop", sThrust: "thrust", sSweep: "sweep", sChop: "chop",
   wToss: "toss",
-  blink: "dash", burst: "spin", // placeholder poses until the skill animations land
+  blink: "dash", burst: "spin", fireball: "punch", wave: "heavy", // placeholder poses until the skill animations land
 };
 
 // How far the striking limb is extended, 0 (rest) to 1 (full): winds up through startup, peaks in active, retracts in recovery
@@ -416,6 +445,97 @@ function blend(prev: Actor, cur: Actor, alpha: number): Actor {
   return { ...cur, x: lerp(prev.x, cur.x, alpha), y: lerp(prev.y, cur.y, alpha) };
 }
 
+// Charge glow at the hands while a ranged skill winds up, and the expanding ring of a burst
+function drawCastEffect(ctx: CanvasRenderingContext2D, a: Actor, scr: (x: number, y: number) => Pt): void {
+  if (a.state!=="attack"||a.move===null) return;
+  const { startup, active }=WORLD_MOVES[a.move];
+  const ax=a.x/SUB;
+  const ay=a.y/SUB;
+  ctx.save();
+  if (isProjectileMove(a.move)&&a.frame<=startup) {
+    const t=Math.min(1, a.frame/startup);
+    const c=scr(ax+DIR_COS[a.dir]/256*18, ay+DIR_SIN[a.dir]/256*18);
+    ctx.fillStyle=a.move==="wave"? "rgba(56,189,248,0.7)":"rgba(251,146,60,0.8)";
+    ctx.beginPath();
+    ctx.arc(c.x, c.y-HIP_H*0.9, 2+t*6, 0, Math.PI*2);
+    ctx.fill();
+  } else if (a.move==="burst"&&a.frame>=startup&&a.frame<startup+active*3) {
+    const t=(a.frame-startup)/(active*3);
+    const r=WORLD_MOVES.burst.reachPx*(0.3+0.7*t);
+    const c=scr(ax, ay);
+    ctx.strokeStyle=`rgba(168,85,247,${1-t})`;
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y, r*0.5, r*0.2, 0, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Fireball: glowing orb with a short tail. Slash wave: a crescent across the heading that fades with age.
+function drawProjectile(ctx: CanvasRenderingContext2D, p: Projectile, alpha: number, scr: (x: number, y: number) => Pt): void {
+  const def=PROJECTILE_DEFS[p.move];
+  const ux=DIR_COS[p.dir]/256;
+  const uy=DIR_SIN[p.dir]/256;
+  const x=p.x/SUB+ux*def.speedPx*alpha;
+  const y=p.y/SUB+uy*def.speedPx*alpha;
+  const lift=HIP_H;
+  const at=(wx: number, wy: number): Pt => {
+    const q=scr(wx, wy);
+    return { x: q.x, y: q.y-lift };
+  };
+  ctx.save();
+  ctx.lineCap="round";
+  if (p.move==="fireball") {
+    const tail=at(x-ux*24, y-uy*24);
+    const head=at(x, y);
+    ctx.strokeStyle="rgba(251,146,60,0.45)";
+    ctx.lineWidth=7;
+    line(ctx, [tail, head]);
+    ctx.fillStyle="#f97316";
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, def.radiusPx*0.6, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle="#fde68a";
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, def.radiusPx*0.3, 0, Math.PI*2);
+    ctx.fill();
+  } else {
+    const a=at(x-uy*def.radiusPx*1.6, y+ux*def.radiusPx*1.6);
+    const b=at(x+uy*def.radiusPx*1.6, y-ux*def.radiusPx*1.6);
+    const c=at(x+ux*16, y+uy*16);
+    ctx.globalAlpha=1-0.6*(p.age/def.life);
+    ctx.strokeStyle="#38bdf8";
+    ctx.lineWidth=5;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.quadraticCurveTo(c.x*2-(a.x+b.x)/2, c.y*2-(a.y+b.y)/2, b.x, b.y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Stamina bar with a cooldown pip per skill, for the live player
+function drawHud(ctx: CanvasRenderingContext2D, a: Actor, dark: boolean): void {
+  const x=12;
+  const y=H-22;
+  const w=140;
+  ctx.save();
+  ctx.fillStyle=dark? "#525252":"#d4d4d4";
+  ctx.fillRect(x, y, w, 6);
+  ctx.fillStyle="#38bdf8";
+  ctx.fillRect(x, y, w*a.stamina/MAX_STAMINA, 6);
+  const pip=w/SKILL_DEFS.length;
+  SKILL_DEFS.forEach((def, i) => {
+    const ready=a.cd[i]===0&&a.stamina>=def.cost;
+    ctx.fillStyle=dark? "#525252":"#d4d4d4";
+    ctx.fillRect(x+i*pip, y+9, pip-3, 4);
+    ctx.fillStyle=ready? "#a78bfa":"#737373";
+    ctx.fillRect(x+i*pip, y+9, (pip-3)*(1-a.cd[i]/def.cooldown), 4);
+  });
+  ctx.restore();
+}
+
 function drawScene(ctx: CanvasRenderingContext2D, world: WorldState, prev: WorldState, alpha: number, dark: boolean, amps: number[]): void {
   ctx.fillStyle=dark? "#3a3a3a":"#fbfaf5";
   ctx.fillRect(0, 0, W, H);
@@ -450,7 +570,10 @@ function drawScene(ctx: CanvasRenderingContext2D, world: WorldState, prev: World
   for (const { a, color, fill, amp } of entries) {
     const s=scr(a.x/SUB, a.y/SUB);
     drawActor(ctx, a, s.x, s.y, color, poleColor, fill, barBg, world.tick+alpha, amp);
+    drawCastEffect(ctx, a, scr);
   }
+  for (const p of world.projectiles) drawProjectile(ctx, p, alpha, scr);
+  drawHud(ctx, player, dark);
 }
 
 const ARCHETYPE_LABELS: Record<Archetype, string>={ aggressive: "Aggressive", defensive: "Defensive", combo: "Combo", weapon: "Weapon" };
@@ -469,6 +592,7 @@ export default function WorldGame(): React.JSX.Element {
   const npcRef=useRef<WorldNpcState>(session.npc);
   const keysRef=useRef<Set<string>>(new Set());
   const touchRef=useRef<InputMask>(0);
+  const castQueueRef=useRef<number[]>([]);
   const darkRef=useRef(false);
   const pausedRef=useRef(false);
   const brainRef=useRef<FighterBrain|null>(null);
@@ -480,6 +604,10 @@ export default function WorldGame(): React.JSX.Element {
 
   const onTouch=useCallback((mask: InputMask): void => {
     touchRef.current=mask;
+  }, []);
+
+  const onCast=useCallback((id: string): void => {
+    castQueueRef.current=castMasks(id, worldRef.current.player.dir);
   }, []);
 
   // Game loop: fixed 60 Hz steps inside requestAnimationFrame
@@ -535,7 +663,7 @@ export default function WorldGame(): React.JSX.Element {
           npcRef.current=npc;
           mask=m;
         }
-        worldRef.current=stepWorld(world, [keyMask(keysRef.current)|touchRef.current, mask]);
+        worldRef.current=stepWorld(world, [keyMask(keysRef.current)|touchRef.current|(castQueueRef.current.shift() ?? 0), mask]);
         acc-=STEP_MS;
       }
       // Ease the limb swing in and out so it does not snap when movement starts or stops
@@ -610,6 +738,7 @@ export default function WorldGame(): React.JSX.Element {
     const onBlur=(): void => {
       keys.clear();
       touchRef.current=0;
+      castQueueRef.current=[];
       setPause(true);
     };
     const onFocus=(): void => setPause(false);
@@ -684,6 +813,8 @@ export default function WorldGame(): React.JSX.Element {
         moveLabels={{ left: "Left", right: "Right", up: "Up", down: "Down" }}
         attackLabels={["Punch", "Kick", "Heavy"]}
         extraButtons={TOUCH_EXTRAS}
+        castButtons={TOUCH_CASTS}
+        onCast={onCast}
       />
       <p className="text-center text-xs text-neutral-400">
         Click the game, then WASD or arrows move · Shift run · C crouch · E pick up / drop · J punch · K kick · L heavy

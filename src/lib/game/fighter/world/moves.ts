@@ -12,6 +12,8 @@ export type WorldMoveId =
   | 'dash'
   | 'blink'
   | 'burst'
+  | 'fireball'
+  | 'wave'
   | 'wThrust'
   | 'wSweep'
   | 'wChop'
@@ -31,6 +33,7 @@ export type WorldMoveData = {
   level: MoveLevel;
   knockbackPx: number;
   armed: boolean; // weapon move: spends durability on a hit and gets no unarmed chain bonus
+  ranged?: boolean; // spawns a projectile on its first active frame and has no melee hitbox
 };
 
 export const PICKUP_RANGE_PX = 40;
@@ -78,6 +81,8 @@ export const WORLD_MOVES: Record<WorldMoveId, WorldMoveData> = {
   dash: unarmed(6, 6, 18, 100, 20, 60, 2, 'mid', 30),
   blink: unarmed(4, 8, 24, 160, 26, 50, 2, 'mid', 40),
   burst: unarmed(8, 4, 20, 70, 22, 120, 8, 'mid', 90),
+  fireball: { ...unarmed(10, 1, 14, 80, 18, 0, 1, 'mid', 30), ranged: true },
+  wave: { ...unarmed(14, 1, 20, 110, 22, 0, 1, 'mid', 40), ranged: true },
   wThrust: weapon('thrust', 1, 20, MOVES.thrust.reachPx, 100),
   wSweep: weapon('sweep', 3, 28, MOVES.sweep.reachPx, 100),
   wChop: weapon('chop', 2, 44, MOVES.chop.reachPx, 100),
@@ -86,6 +91,22 @@ export const WORLD_MOVES: Record<WorldMoveId, WorldMoveData> = {
   sChop: weapon('chop', 2, 44, 90, 85),
   wToss: { startup: 8, active: 2, recovery: 22, damage: 90, hitstun: 20, reachPx: WEAPON_TOSS_REACH_PX, arcSteps: 1, level: 'mid', knockbackPx: 20, armed: false },
 };
+
+export type ProjectileMove = 'fireball' | 'wave';
+export type ProjectileDef = {
+  speedPx: number; // px/frame
+  life: number; // frames before it fades
+  radiusPx: number; // hit radius added to the body radius
+  pierce: boolean; // keeps flying after a hit (it still hits a target once)
+};
+export const PROJECTILE_DEFS: Record<ProjectileMove, ProjectileDef> = {
+  fireball: { speedPx: 6, life: 60, radiusPx: 10, pierce: false },
+  wave: { speedPx: 5, life: 70, radiusPx: 20, pierce: true },
+};
+
+export function isProjectileMove(move: WorldMoveId): move is ProjectileMove {
+  return move === 'fireball' || move === 'wave';
+}
 
 // Weapon move ids for ATK_A / ATK_B / ATK_C.
 export const WEAPON_MOVES: Record<WeaponKind, readonly [WorldMoveId, WorldMoveId, WorldMoveId]> = {

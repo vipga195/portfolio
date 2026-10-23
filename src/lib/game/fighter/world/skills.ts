@@ -23,6 +23,8 @@ export type SkillDef = {
 export const SKILL_DEFS: readonly SkillDef[] = [
   { move: 'blink', button: WBIT.ATK_C, tokens: ['back', 'toward'], cost: 400, cooldown: 240, label: 'Blink strike', keys: '←, →, L' },
   { move: 'burst', button: WBIT.ATK_C, tokens: ['crouch', 'crouch'], cost: 450, cooldown: 300, label: 'Burst', keys: 'C, C, L' },
+  { move: 'fireball', button: WBIT.ATK_A, tokens: ['crouch', 'toward'], cost: 250, cooldown: 45, label: 'Fireball', keys: 'C, →, J' },
+  { move: 'wave', button: WBIT.ATK_B, tokens: ['crouch', 'toward'], cost: 300, cooldown: 90, label: 'Slash wave', keys: 'C, →, K' },
 ];
 export const SKILL_COUNT = SKILL_DEFS.length;
 

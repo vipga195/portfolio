@@ -13,6 +13,9 @@ type TouchControlsProps={
   // World mode: relabels the three attack buttons and adds a row of extra buttons (run, crouch, pick up)
   attackLabels?: [string, string, string];
   extraButtons?: PadButton[];
+  // World mode: one-tap skill buttons that run a whole command sequence
+  castButtons?: { id: string; label: string }[];
+  onCast?: (id: string) => void;
 };
 
 const MOVE_BUTTONS: PadButton[]=[
@@ -34,7 +37,7 @@ const ATTACK_BUTTONS: PadButton[]=[
   { id: "chop", label: "Chop", bit: BIT.CHOP },
 ];
 
-export default function TouchControls({ onChange, moveLabels, attackLabels, extraButtons }: TouchControlsProps): React.JSX.Element|null {
+export default function TouchControls({ onChange, moveLabels, attackLabels, extraButtons, castButtons, onCast }: TouchControlsProps): React.JSX.Element|null {
   const [coarse, setCoarse]=useState(false);
   const [pressed, setPressed]=useState<string[]>([]);
   // Active pointer ids per button, so several fingers (and several buttons) work at once
@@ -119,6 +122,22 @@ export default function TouchControls({ onChange, moveLabels, attackLabels, extr
         <div className="flex flex-1 flex-col gap-2">{ATTACK_BUTTONS.map(renderButton)}</div>
       </div>
       {extraButtons&&<div className="flex w-full gap-2">{extraButtons.map(renderButton)}</div>}
+      {castButtons&&onCast&&(
+        <div className="flex w-full gap-2">
+          {castButtons.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onPointerDown={(e) => { e.preventDefault(); onCast(b.id); }}
+              onContextMenu={(e) => e.preventDefault()}
+              style={{ touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}
+              className="min-h-14 min-w-14 flex-1 rounded-xl border border-violet-400 bg-violet-500/20 px-2 text-sm font-medium select-none active:bg-violet-500/60"
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

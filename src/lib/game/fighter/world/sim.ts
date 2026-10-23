@@ -3,8 +3,8 @@ import { BODY_HALF_WIDTH, MAX_HP, SUB, WALK_SPEED } from '../frame-data.ts';
 import { has } from '../inputs.ts';
 import type { InputMask } from '../inputs.ts';
 import { DIR_COS, DIR_COUNT, DIR_SIN, dirFromVector } from './dirs.ts';
-import { PICKUP_FRAMES, PICKUP_RANGE_PX, WEAPON_DURABILITY, WEAPON_MOVES, WEAPON_TOSS_REACH_PX, WORLD_MOVES } from './moves.ts';
-import type { WeaponKind, WorldMoveId } from './moves.ts';
+import { PICKUP_FRAMES, PICKUP_RANGE_PX, PROJECTILE_DEFS, WEAPON_DURABILITY, WEAPON_MOVES, WEAPON_TOSS_REACH_PX, WORLD_MOVES, isProjectileMove } from './moves.ts';
+import type { ProjectileMove, WeaponKind, WorldMoveId } from './moves.ts';
 import { createWorldNpc, npcStepWorld } from './npc.ts';
 import type { WorldNpcState } from './npc.ts';
 import { CMD_LEN, MAX_STAMINA, SKILL_COUNT, SKILL_DEFS, STAMINA_REGEN, TOK_CROUCH, matchSkill } from './skills.ts';
@@ -48,12 +48,23 @@ export type Actor = {
   crouchHeld: boolean; // CROUCH was down last frame
 };
 
+export type Projectile = {
+  owner: 0 | 1; // 0 = player, 1 = general
+  move: ProjectileMove;
+  x: number; // subpx
+  y: number; // subpx
+  dir: number; // 0..15
+  age: number; // frames since it was spawned
+  hitDone: boolean; // a piercing projectile has already hit its target
+};
+
 export type WorldState = {
   tick: number;
   rng: number;
   player: Actor;
   general: Actor;
   items: Item[];
+  projectiles: Projectile[];
 };
 
 export const WORLD_WIDTH = 1600; // px
@@ -85,12 +96,13 @@ const NPC_SEED_XOR = 0x9e3779b9;
 const ATTACK_BITS = WBIT.ATK_A | WBIT.ATK_B | WBIT.ATK_C;
 const BODY_DIAMETER = 2 * BODY_HALF_WIDTH * SUB;
 const PICKUP_RANGE = PICKUP_RANGE_PX * SUB;
+const PROJECTILE_SPAWN_PX = 24; // distance in front of the caster where a projectile appears
 
 const STATE_INDEX: Record<ActorStateName, number> = { idle: 0, walk: 1, run: 2, crouch: 3, attack: 4, pickup: 5, hitstun: 6, dead: 7, roll: 8 };
 const MOVE_INDEX: Record<WorldMoveId, number> = {
   punch: 0, kick: 1, heavy: 2, lowKick: 3, uppercut: 4, spin: 5, dash: 6,
   wThrust: 7, wSweep: 8, wChop: 9, sThrust: 10, sSweep: 11, sChop: 12,
-  blink: 13, burst: 14, wToss: 15,
+  blink: 13, burst: 14, wToss: 15, fireball: 16, wave: 17,
 };
 const WEAPON_INDEX: Record<WeaponKind, number> = { spear: 0, staff: 1 };
 
@@ -136,6 +148,7 @@ export function createWorld(seed: number, options: { playerSkills?: boolean } = 
     player: makeActor(START_PLAYER, options.playerSkills === true),
     general: makeActor(START_GENERAL, false),
     items: START_ITEMS.map((i) => ({ ...i, durability: WEAPON_DURABILITY[i.kind] })),
+    projectiles: [],
   };
 }
 
@@ -381,6 +394,7 @@ function applyIntent(a: Actor, mask: InputMask, heading: number, freshAttack: bo
 function connects(att: Actor, def: Actor): boolean {
   if (att.state !== 'attack' || att.move === null || att.hitDone) return false;
   const data = WORLD_MOVES[att.move];
+  if (data.ranged === true) return false;
   if (att.frame < data.startup || att.frame >= data.startup + data.active) return false;
   if (def.state === 'dead' || def.invuln > 0) return false;
   if (def.state === 'roll' && def.frame < ROLL_SAFE_FRAMES) return false;
@@ -502,10 +516,58 @@ function releaseToss(a: Actor, items: Item[]): void {
   a.durability = 0;
 }
 
+// The projectile leaves the caster on the first active frame of a ranged move.
+function spawnProjectile(a: Actor, owner: 0 | 1, projectiles: Projectile[]): void {
+  if (a.state !== 'attack' || a.move === null || !isProjectileMove(a.move) || a.frame !== WORLD_MOVES[a.move].startup) return;
+  projectiles.push({
+    owner,
+    move: a.move,
+    x: clamp(a.x + Math.trunc((PROJECTILE_SPAWN_PX * SUB * DIR_COS[a.dir]) / 256), 0, WORLD_WIDTH * SUB),
+    y: clamp(a.y + Math.trunc((PROJECTILE_SPAWN_PX * SUB * DIR_SIN[a.dir]) / 256), 0, WORLD_HEIGHT * SUB),
+    dir: a.dir,
+    age: 0,
+    hitDone: false,
+  });
+}
+
+function projectileConnects(p: Projectile, target: Actor): boolean {
+  if (p.hitDone || target.state === 'dead' || target.invuln > 0) return false;
+  if (target.state === 'roll' && target.frame < ROLL_SAFE_FRAMES) return false;
+  const dx = target.x - p.x;
+  const dy = target.y - p.y;
+  const reach = (BODY_HALF_WIDTH + PROJECTILE_DEFS[p.move].radiusPx) * SUB;
+  return dx * dx + dy * dy <= reach * reach;
+}
+
+// Moves every projectile one frame, resolves hits against the other fighter and drops the spent or out-of-world ones.
+function stepProjectiles(list: Projectile[], player: Actor, general: Actor, items: Item[]): Projectile[] {
+  const next: Projectile[] = [];
+  for (const p of list) {
+    const def = PROJECTILE_DEFS[p.move];
+    const q: Projectile = {
+      ...p,
+      age: p.age + 1,
+      x: p.x + Math.trunc((def.speedPx * SUB * DIR_COS[p.dir]) / 256),
+      y: p.y + Math.trunc((def.speedPx * SUB * DIR_SIN[p.dir]) / 256),
+    };
+    if (q.age > def.life || q.x < 0 || q.x > WORLD_WIDTH * SUB || q.y < 0 || q.y > WORLD_HEIGHT * SUB) continue;
+    const caster = p.owner === 0 ? player : general;
+    const target = p.owner === 0 ? general : player;
+    if (projectileConnects(q, target)) {
+      applyHit({ ...caster, move: q.move, dir: q.dir, chain: 1 }, target, items);
+      if (!def.pierce) continue;
+      q.hitDone = true;
+    }
+    next.push(q);
+  }
+  return next;
+}
+
 export function stepWorld(state: WorldState, inputs: [InputMask, InputMask]): WorldState {
   const player = cloneActor(state.player);
   const general = cloneActor(state.general);
   const items = state.items.map((i) => ({ ...i }));
+  const projectiles = state.projectiles.map((p) => ({ ...p }));
 
   advanceTimers(player);
   advanceTimers(general);
@@ -513,6 +575,8 @@ export function stepWorld(state: WorldState, inputs: [InputMask, InputMask]): Wo
   act(general, inputs[1], items);
   releaseToss(player, items);
   releaseToss(general, items);
+  spawnProjectile(player, 0, projectiles);
+  spawnProjectile(general, 1, projectiles);
   separate(player, general);
 
   // Hits are evaluated against the state at the start of the hit phase, so trades resolve together.
@@ -527,7 +591,9 @@ export function stepWorld(state: WorldState, inputs: [InputMask, InputMask]): Wo
   if (hitG && player.state === 'attack') player.hitDone = true;
   if (hitP && general.state === 'attack') general.hitDone = true;
 
-  return { tick: state.tick + 1, rng: nextRandom(state.rng)[1], player, general, items };
+  const flying = stepProjectiles(projectiles, player, general, items);
+
+  return { tick: state.tick + 1, rng: nextRandom(state.rng)[1], player, general, items, projectiles: flying };
 }
 
 function mix(hash: number, value: number): number {
@@ -578,6 +644,19 @@ export function hashWorld(state: WorldState): number {
     h = mix(h, item.x);
     h = mix(h, item.y);
     h = mix(h, item.durability);
+  }
+  // Only mixed when something is flying, so hashes of projectile-free states stay what they were before projectiles existed.
+  if (state.projectiles.length > 0) {
+    h = mix(h, state.projectiles.length);
+    for (const p of state.projectiles) {
+      h = mix(h, p.owner);
+      h = mix(h, MOVE_INDEX[p.move]);
+      h = mix(h, p.x);
+      h = mix(h, p.y);
+      h = mix(h, p.dir);
+      h = mix(h, p.age);
+      h = mix(h, p.hitDone ? 1 : 0);
+    }
   }
   return h >>> 0;
 }
