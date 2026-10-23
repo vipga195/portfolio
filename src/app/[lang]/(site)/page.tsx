@@ -6,7 +6,7 @@ import Hero from "@/components/Hero";
 import LazyVideo from "@/components/LazyVideo";
 import Section from "@/components/Section";
 import { EXPERIENCES, KNOWLEDGE_BASE, PROFILE, PROJECTS, SKILLS } from "@/data/profile";
-import { hasLocale } from "@/i18n/config";
+import { hasLocale, localizedPath } from "@/i18n/config";
 import { DICTIONARIES } from "@/i18n/dictionary";
 import { pageMetadata } from "@/lib/metadata";
 
@@ -170,6 +170,12 @@ export default async function Home({ params }: PageProps<"/[lang]">): Promise<Re
               className="rounded-full border border-neutral-600 px-6 py-3 hover:border-neutral-300"
             >
               GitHub
+            </a>
+            <a
+              href={localizedPath(lang, PROFILE.aiApps.path)}
+              className="rounded-full border border-neutral-600 px-6 py-3 hover:border-neutral-300"
+            >
+              {PROFILE.aiApps.label[lang]}
             </a>
             {PROFILE.linkedin&&(
               <a

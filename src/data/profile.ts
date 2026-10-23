@@ -66,6 +66,10 @@ export const PROFILE = {
   github: "https://github.com/vipga195",
   linkedin: "https://www.linkedin.com/in/huy-nguyen-trung-950b02437/",
   cvUrl: "/CV_NGUYEN_TRUNG_HUY_FRONTEND_ATS.pdf",
+  aiApps: {
+    label: { en: "AI Apps", ja: "AIアプリ", vi: "Ứng dụng AI" } satisfies Localized,
+    path: "/games/snake",
+  },
 };
 
 export const SKILLS: SkillGroup[] = [
@@ -79,7 +83,7 @@ export const SKILLS: SkillGroup[] = [
   },
   {
     title: { en: "Used regularly", ja: "日常的に使用", vi: "Dùng thường xuyên" },
-    items: ["Vue.js", "Nuxt.js", "Vite", "Node.js", "RESTful API", "GitHub Actions", "Git", "Responsive Design", "SEO Optimization", "Accessibility (a11y)", "Performance Tuning"],
+    items: ["Vue.js", "Nuxt.js", "Vite", "Node.js", "RESTful API", "GitHub Actions", "Git", "Docker", "Turborepo", "GCP (Cloud Run, Firebase Hosting)", "Responsive Design", "SEO Optimization", "Accessibility (a11y)", "Performance Tuning"],
   },
   {
     title: { en: "Used before", ja: "使用経験あり", vi: "Từng dùng" },
@@ -127,6 +131,21 @@ export const PROJECTS: Project[] = [
       poster: "/projects/go-poster.jpg",
       alt: { en: "GO Inc. site scroll animation demo", ja: "GO株式会社 サイトのスクロールアニメーションデモ", vi: "Demo animation khi cuộn website GO Inc." },
     },
+  },
+  {
+    name: "GO BUSINESS Support",
+    summary: {
+      en: "Customer support site for GO BUSINESS: Contentful-driven static site in a monorepo (5 apps + 1 shared package) for two user groups (admin / employee).",
+      ja: "GO BUSINESS のカスタマーサポートサイト。Contentful 連携の静的サイトをモノレポ（5アプリ＋共通パッケージ1）で構築し、管理者／従業員の2種類のユーザーに提供。",
+      vi: "Site hỗ trợ khách hàng GO BUSINESS: static site lấy nội dung từ Contentful, monorepo 5 app + 1 package dùng chung, phục vụ 2 nhóm người dùng (admin / employee).",
+    },
+    role: {
+      en: "Develop and maintain: custom Contentful App (Editor.js block editor, CSV import), CI/CD dev/prod with GitHub Actions",
+      ja: "開発・保守：Contentful カスタムアプリ（Editor.js ブロックエディタ、CSV インポート）、GitHub Actions による dev/prod の CI/CD",
+      vi: "Phát triển và bảo trì: Contentful App tùy biến (block editor Editor.js, import CSV), CI/CD dev/prod với GitHub Actions",
+    },
+    teamSize: 5,
+    stack: ["Next.js", "Contentful", "Editor.js", "Docker", "GCP", "GitHub Actions"],
   },
   {
     name: "Wonderia",
@@ -218,6 +237,9 @@ export const EXPERIENCES: Experience[] = [
         "Build and maintain CI/CD pipelines with GitHub",
         "Build and maintain Node.js APIs for website forms, forwarding submitted data to external services",
         "Build UI animation with GSAP, Three.js, Animate.js",
+        "GO BUSINESS support site: Contentful-driven static site in a monorepo (5 apps + 1 shared package) for two user groups (admin / employee)",
+        "Custom Contentful App: Editor.js-based block editor with in-house plugins (responsive image, table, note list) and a bulk CSV import tool",
+        "CI/CD on GitHub Actions for dev/prod: content export, build, Docker packaging, deploy and Slack notification; manual prod release with an allowlist",
       ],
       ja: [
         "日本のクライアント案件のフロントエンド開発・保守",
@@ -225,6 +247,9 @@ export const EXPERIENCES: Experience[] = [
         "GitHub での CI/CD パイプラインの構築・保守",
         "Web フォーム用 Node.js API の開発・保守（送信データを外部サービスへ連携）",
         "GSAP、Three.js、Animate.js による UI アニメーション制作",
+        "GO BUSINESS サポートサイト：Contentful 連携の静的サイトをモノレポ（5アプリ＋共通パッケージ1）で構築し、管理者／従業員の2種類のユーザーに提供",
+        "Contentful カスタムアプリ：Editor.js ベースのブロックエディタ（レスポンシブ画像・テーブル・注釈リストの自作プラグイン）と CSV 一括インポートツール",
+        "GitHub Actions による dev/prod の CI/CD：コンテンツのエクスポート、ビルド、Docker 化、デプロイ、Slack 通知。本番リリースは許可リスト制の手動実行",
       ],
       vi: [
         "Phát triển và bảo trì front-end cho các dự án của khách hàng Nhật Bản",
@@ -232,6 +257,9 @@ export const EXPERIENCES: Experience[] = [
         "Xây dựng và bảo trì CI/CD pipeline trên GitHub",
         "Xây dựng và bảo trì API Node.js cho form website, chuyển tiếp dữ liệu sang các service bên ngoài",
         "Xây dựng UI animation với GSAP, Three.js, Animate.js",
+        "Site hỗ trợ khách hàng GO BUSINESS: static site lấy nội dung từ Contentful, monorepo 5 app + 1 package dùng chung, phục vụ 2 nhóm người dùng (admin / employee)",
+        "Contentful App tùy biến: block editor dựa trên Editor.js với plugin tự viết (ảnh responsive, table, note list) và công cụ import CSV hàng loạt",
+        "CI/CD GitHub Actions cho dev/prod: export nội dung, build, đóng gói Docker, deploy, thông báo Slack; release prod thủ công với allowlist người được phép",
       ],
     },
     stack: ["Next.js", "Nuxt.js", "Vite", "Node.js", "GSAP", "Three.js"],

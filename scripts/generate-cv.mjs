@@ -3,6 +3,7 @@ import React from "react";
 import { Document, Page, Text, View, StyleSheet, renderToFile, Font } from "@react-pdf/renderer";
 import fs from "node:fs";
 import { PROFILE, SKILLS, EXPERIENCES } from "../src/data/profile.ts";
+import { SITE_URL } from "../src/lib/site.ts";
 
 const e = React.createElement;
 
@@ -113,6 +114,7 @@ function buildDataFromSource() {
       email: PROFILE.email,
       github: PROFILE.github,
       linkedin: PROFILE.linkedin,
+      portfolio: `${SITE_URL}${PROFILE.aiApps.path}`,
       about: PROFILE.about.en,
     },
     skills: SKILLS.map(group => ({ title: group.title.en, items: group.items })),
