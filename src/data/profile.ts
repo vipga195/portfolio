@@ -72,7 +72,7 @@ export const PROFILE = {
   cvUrl: "/CV_NGUYEN_TRUNG_HUY_FRONTEND_ATS.pdf",
   aiApps: {
     label: { en: "AI Apps", ja: "AIアプリ", vi: "Ứng dụng AI" } satisfies Localized,
-    path: "/games/snake",
+    path: "/games",
   },
 };
 
