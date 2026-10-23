@@ -42,7 +42,7 @@ export default function Hero({ lang, labels }: HeroProps): React.JSX.Element {
 
   useGSAP(
     () => {
-      // TEMP preview: force the intro even with reduced motion (restore "(prefers-reduced-motion: no-preference)")
+      // The intro plays regardless of prefers-reduced-motion (deliberate design choice)
       gsap.matchMedia().add("all", () => {
         let caret: Element | null = null;
         const moveCaret = (el: Element | null): void => {
@@ -89,7 +89,7 @@ export default function Hero({ lang, labels }: HeroProps): React.JSX.Element {
   return (
     <section ref={container} id="hero" className="relative flex min-h-svh items-center overflow-hidden">
       <div className="mx-auto w-full max-w-5xl px-6">
-        <p className="hero-greeting font-mono text-sm text-blue-400">{labels.greeting}</p>
+        <p className="hero-greeting font-mono text-sm text-violet-300">{labels.greeting}</p>
         <h1 className="mt-2 text-5xl font-bold tracking-tight md:text-7xl">{PROFILE.name}</h1>
         <h2 className="hero-typed mt-3 text-2xl text-neutral-400 md:text-3xl">
           <TypedText text={PROFILE.title[lang]} />
@@ -98,13 +98,13 @@ export default function Hero({ lang, labels }: HeroProps): React.JSX.Element {
           <TypedText text={PROFILE.tagline[lang]} />
         </p>
         <div className="hero-actions mt-8 flex flex-wrap gap-4">
-          <a href="#projects" className="rounded-full bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700">
+          <a href="#projects" className="blink-hover bg-accent px-6 py-3 font-medium text-white hover:bg-accent/80">
             {labels.viewWork}
           </a>
           <a
             href={PROFILE.cvUrl}
             target="_blank"
-            className="rounded-full border border-neutral-600 px-6 py-3 font-medium hover:border-neutral-300"
+            className="blink-hover border border-neutral-600 px-6 py-3 font-medium hover:border-neutral-300"
           >
             {labels.downloadCv}
           </a>

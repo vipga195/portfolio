@@ -3,6 +3,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --display-font: var(--font-urbanist), var(--font-geist-sans), "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+}
+
+/* Urbanist has no Vietnamese glyphs; mixing fonts inside a word looks broken, so use Geist for the whole display text */
+:lang(vi) {
+  --display-font: var(--font-geist-sans), sans-serif;
 }
 
 @theme inline {
@@ -10,6 +16,10 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--display-font);
+  --color-accent: #6d3bf5;
+  --color-highlight: #f2c53d;
+  --animate-marquee: marquee 40s linear infinite;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,5 +49,28 @@ body {
 @keyframes caret-blink {
   50% {
     opacity: 0;
+  }
+}
+
+/* Miku-style hover: quick triple flicker */
+@utility blink-hover {
+  &:hover {
+    animation: blink 64ms 3 cubic-bezier(0.25, 0.25, 0.75, 0.75) forwards;
+  }
+}
+
+@keyframes blink {
+  0% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Two identical halves: moving by -50% loops seamlessly */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
   }
 }

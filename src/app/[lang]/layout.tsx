@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Urbanist } from "next/font/google";
 import { notFound } from "next/navigation";
 
 import { PROFILE } from "@/data/profile";
@@ -17,6 +17,8 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin", "vietnamese"],
 });
+
+const urbanist = Urbanist({ variable: "--font-urbanist", subsets: ["latin"], weight: ["300", "500", "700"] });
 
 const OG_LOCALES: Localized = { en: "en_US", ja: "ja_JP", vi: "vi_VN" };
 
@@ -69,7 +71,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
   return (
     <html
       lang={lang}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${urbanist.variable} h-full antialiased`}
     >
       <head>
         <meta name="google-site-verification" content="e7iRMyyNYif6TvvKSjc2xGcEdbWnCvOIWOFWkUVg_1c" />
