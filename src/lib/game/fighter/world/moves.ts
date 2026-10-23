@@ -17,7 +17,8 @@ export type WorldMoveId =
   | 'wChop'
   | 'sThrust'
   | 'sSweep'
-  | 'sChop';
+  | 'sChop'
+  | 'wToss';
 
 export type WorldMoveData = {
   startup: number;
@@ -34,6 +35,7 @@ export type WorldMoveData = {
 
 export const PICKUP_RANGE_PX = 40;
 export const PICKUP_FRAMES = 8;
+export const WEAPON_TOSS_REACH_PX = 220;
 export const WEAPON_DURABILITY: Record<WeaponKind, number> = { spear: 14, staff: 24 };
 
 function unarmed(
@@ -82,6 +84,7 @@ export const WORLD_MOVES: Record<WorldMoveId, WorldMoveData> = {
   sThrust: weapon('thrust', 1, 20, 110, 85),
   sSweep: weapon('sweep', 3, 28, 100, 85),
   sChop: weapon('chop', 2, 44, 90, 85),
+  wToss: { startup: 8, active: 2, recovery: 22, damage: 90, hitstun: 20, reachPx: WEAPON_TOSS_REACH_PX, arcSteps: 1, level: 'mid', knockbackPx: 20, armed: false },
 };
 
 // Weapon move ids for ATK_A / ATK_B / ATK_C.

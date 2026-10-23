@@ -29,6 +29,30 @@ export const GAMES: GameEntry[] = [
     tags: ["Q-learning", "DQN", "TypeScript"],
   },
   {
+    id: "fighter",
+    name: "Stick Fighter Duel",
+    path: "/games/fighter",
+    status: "playable",
+    summary: {
+      en: "A 1v1 stick-figure polearm duel against a scripted opponent with three difficulty levels. Keyboard and touch controls.",
+      ja: "棒人間の長柄武器による1対1の対戦。3段階の難易度のスクリプトNPCと戦います。キーボードとタッチ操作に対応。",
+      vi: "Đấu tay đôi người que dùng vũ khí dài với NPC theo luật, có 3 mức độ khó. Hỗ trợ bàn phím và cảm ứng.",
+    },
+    tags: ["Deterministic sim", "Canvas", "TypeScript"],
+  },
+  {
+    id: "fighter-world",
+    name: "Stick Fighter Open World",
+    path: "/games/fighter/world",
+    status: "in-development",
+    summary: {
+      en: "An isometric sandbox where you fight a general in an open arena. Early prototype of a larger scrolling world.",
+      ja: "アイソメトリック視点のサンドボックスで将軍と戦います。大きなスクロールワールドの初期プロトタイプです。",
+      vi: "Sandbox góc nhìn isometric, đấu với một tướng trong đấu trường mở. Bản thử nghiệm đầu của thế giới mở cuộn lớn hơn.",
+    },
+    tags: ["Isometric", "Canvas", "TypeScript"],
+  },
+  {
     id: "snake-lab",
     name: "Snake Training Lab",
     path: "/games/snake/lab",

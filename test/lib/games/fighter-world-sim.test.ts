@@ -12,6 +12,9 @@ import { createWorldNpc, npcStepWorld } from '../../../src/lib/game/fighter/worl
 import {
   INVULN_FRAMES,
   RESPAWN_FRAMES,
+  ROLL_COOLDOWN,
+  ROLL_FRAMES,
+  ROLL_SAFE_FRAMES,
   RUN_SPEED,
   WORLD_HEIGHT,
   WORLD_WIDTH,
@@ -112,7 +115,7 @@ describe('world determinism', () => {
       else if (phase < 90) script.push(phase % 6 < 3 ? B | C : WBIT.CROUCH | A);
       else script.push(phase % 5 === 0 ? C : WBIT.UP);
     }
-    assert.equal(hashWorld(simulateWorld(42, script)), 4226971988); // re-baselined when skill state joined the hash; end state pinned below
+    assert.equal(hashWorld(simulateWorld(42, script)), 2415678852); // re-baselined when skill state and rollCd joined the hash; end state pinned below
   });
 
   // Pins the observable end state of the same script, so a hash re-baseline cannot hide a behavior change.
@@ -784,5 +787,42 @@ describe('command skills', () => {
     assert.equal(JSON.stringify(w), snapshot);
     assert.notEqual(hashWorld(next), hashWorld({ ...next, player: { ...next.player, cmdTok: [-1, -1, -1] } }));
     assert.notEqual(hashWorld(w), hashWorld({ ...w, player: { ...w.player, stamina: w.player.stamina - 1 } }));
+  });
+});
+
+describe('roll and weapon toss', () => {
+  const ROLL = WBIT.CROUCH | WBIT.RUN | WBIT.RIGHT;
+
+  test('crouch + run + a direction starts a roll that moves the actor', () => {
+    const w = placed(700, 600, 0, 1200, 600);
+    const s = stepWorld(w, [ROLL, 0]);
+    assert.equal(s.player.state, 'roll');
+    assert.ok(stepWorld(s, [ROLL, 0]).player.x > s.player.x);
+  });
+
+  test('a roll is untouchable at the start but not at the end, then needs a cooldown', () => {
+    const base = placed(700, 600, 0, 740, 600);
+    const striker = { ...base.general, dir: 8, state: 'attack' as const, move: 'punch' as const, frame: WORLD_MOVES.punch.startup - 1 };
+    const early = stepWorld({ ...base, player: { ...base.player, state: 'roll', frame: 3 }, general: striker }, [0, 0]);
+    assert.equal(early.player.hp, MAX_HP);
+    const late = stepWorld({ ...base, player: { ...base.player, state: 'roll', frame: ROLL_SAFE_FRAMES }, general: striker }, [0, 0]);
+    assert.ok(late.player.hp < MAX_HP);
+
+    let s = stepWorld(placed(700, 600, 0, 1200, 600), [ROLL, 0]);
+    for (let i = 0; i < ROLL_FRAMES; i++) s = stepWorld(s, [0, 0]);
+    assert.equal(s.player.state, 'idle');
+    assert.equal(s.player.rollCd, ROLL_COOLDOWN);
+    assert.notEqual(stepWorld(s, [ROLL, 0]).player.state, 'roll');
+  });
+
+  test('A + B while armed tosses the weapon: it hits at range and lands on the ground', () => {
+    const w = placed(600, 600, 0, 780, 600);
+    const armed = { ...w, player: { ...w.player, weapon: 'spear' as const, durability: 14 } };
+    assert.equal(stepWorld(armed, [A | B, 0]).player.move, 'wToss');
+    const s = strike(armed, A | B, hitFrames('wToss'));
+    assert.equal(s.player.weapon, null);
+    assert.equal(s.items.length, 1);
+    assert.equal(s.items[0].durability, 13);
+    assert.equal(s.general.hp, MAX_HP - 90);
   });
 });

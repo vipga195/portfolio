@@ -3,14 +3,14 @@ import { BODY_HALF_WIDTH, MAX_HP, SUB, WALK_SPEED } from '../frame-data.ts';
 import { has } from '../inputs.ts';
 import type { InputMask } from '../inputs.ts';
 import { DIR_COS, DIR_COUNT, DIR_SIN, dirFromVector } from './dirs.ts';
-import { PICKUP_FRAMES, PICKUP_RANGE_PX, WEAPON_DURABILITY, WEAPON_MOVES, WORLD_MOVES } from './moves.ts';
+import { PICKUP_FRAMES, PICKUP_RANGE_PX, WEAPON_DURABILITY, WEAPON_MOVES, WEAPON_TOSS_REACH_PX, WORLD_MOVES } from './moves.ts';
 import type { WeaponKind, WorldMoveId } from './moves.ts';
 import { createWorldNpc, npcStepWorld } from './npc.ts';
 import type { WorldNpcState } from './npc.ts';
 import { CMD_LEN, MAX_STAMINA, SKILL_COUNT, SKILL_DEFS, STAMINA_REGEN, TOK_CROUCH, matchSkill } from './skills.ts';
 import { WBIT } from './winputs.ts';
 
-export type ActorStateName = 'idle' | 'walk' | 'run' | 'crouch' | 'attack' | 'pickup' | 'hitstun' | 'dead';
+export type ActorStateName = 'idle' | 'walk' | 'run' | 'crouch' | 'attack' | 'pickup' | 'hitstun' | 'dead' | 'roll';
 
 export type Item = {
   kind: WeaponKind;
@@ -39,6 +39,7 @@ export type Actor = {
   lastTapDir: number; // heading of the last direction tap, -1 = none
   tapAge: number; // frames since the direction was last released, saturating at TAP_AGE_MAX
   dashArmed: number; // frames left in which ATK_B triggers a dash kick, 0 = not armed
+  rollCd: number; // frames until another roll is allowed
   skills: boolean; // command skills enabled (off for NPC and training actors)
   stamina: number; // spent by skills, regenerates every frame
   cd: number[]; // frames left on each SKILL_DEFS cooldown
@@ -63,6 +64,10 @@ export const RUN_SPEED = Math.trunc((WALK_SPEED * 17) / 10); // subpx/frame
 export const DASH_SPEED = 2 * WALK_SPEED; // subpx/frame while a dash kick lunges
 export const BLINK_SPEED = 5 * WALK_SPEED; // subpx/frame while a blink strike lunges
 export const MAX_CHAIN = 3;
+export const ROLL_FRAMES = 18;
+export const ROLL_SAFE_FRAMES = 12; // untouchable window at the start of a roll
+export const ROLL_COOLDOWN = 30;
+export const ROLL_SPEED = Math.trunc((RUN_SPEED * 4) / 3);
 export const TAP_WINDOW = 15; // frames
 const TAP_AGE_MAX = 255;
 
@@ -81,11 +86,11 @@ const ATTACK_BITS = WBIT.ATK_A | WBIT.ATK_B | WBIT.ATK_C;
 const BODY_DIAMETER = 2 * BODY_HALF_WIDTH * SUB;
 const PICKUP_RANGE = PICKUP_RANGE_PX * SUB;
 
-const STATE_INDEX: Record<ActorStateName, number> = { idle: 0, walk: 1, run: 2, crouch: 3, attack: 4, pickup: 5, hitstun: 6, dead: 7 };
+const STATE_INDEX: Record<ActorStateName, number> = { idle: 0, walk: 1, run: 2, crouch: 3, attack: 4, pickup: 5, hitstun: 6, dead: 7, roll: 8 };
 const MOVE_INDEX: Record<WorldMoveId, number> = {
   punch: 0, kick: 1, heavy: 2, lowKick: 3, uppercut: 4, spin: 5, dash: 6,
   wThrust: 7, wSweep: 8, wChop: 9, sThrust: 10, sSweep: 11, sChop: 12,
-  blink: 13, burst: 14,
+  blink: 13, burst: 14, wToss: 15,
 };
 const WEAPON_INDEX: Record<WeaponKind, number> = { spear: 0, staff: 1 };
 
@@ -108,6 +113,7 @@ function makeActor(start: { x: number; y: number; dir: number }, skills: boolean
     lastTapDir: -1,
     tapAge: TAP_AGE_MAX,
     dashArmed: 0,
+    rollCd: 0,
     skills,
     stamina: MAX_STAMINA,
     cd: new Array<number>(SKILL_COUNT).fill(0),
@@ -149,6 +155,7 @@ function toIdle(a: Actor): void {
 function advanceTimers(a: Actor): void {
   if (a.invuln > 0) a.invuln -= 1;
   if (a.dashArmed > 0) a.dashArmed -= 1;
+  if (a.rollCd > 0) a.rollCd -= 1;
   if (a.tapAge < TAP_AGE_MAX) a.tapAge += 1;
   if (a.state !== 'dead' && a.stamina < MAX_STAMINA) a.stamina = Math.min(MAX_STAMINA, a.stamina + STAMINA_REGEN);
   for (let i = 0; i < SKILL_COUNT; i++) if (a.cd[i] > 0) a.cd[i] -= 1;
@@ -171,6 +178,13 @@ function advanceTimers(a: Actor): void {
     case 'hitstun':
       a.frame += 1;
       if (a.frame >= a.stun) toIdle(a);
+      return;
+    case 'roll':
+      a.frame += 1;
+      if (a.frame >= ROLL_FRAMES) {
+        toIdle(a);
+        a.rollCd = ROLL_COOLDOWN;
+      }
       return;
     case 'dead':
       a.frame += 1;
@@ -242,6 +256,7 @@ function chooseMove(a: Actor, mask: InputMask, heading: number, allowSkill: bool
   const atkB = has(mask, WBIT.ATK_B);
   const atkC = has(mask, WBIT.ATK_C);
   if (a.weapon !== null) {
+    if (atkA && atkB) return 'wToss';
     const armedSkill = allowSkill ? readySkill(a, mask, heading) : -1;
     if (armedSkill >= 0) return SKILL_DEFS[armedSkill].move;
     const set = WEAPON_MOVES[a.weapon];
@@ -312,6 +327,10 @@ function walkBy(a: Actor, speed: number): void {
 
 // Step (a): turn the input into a facing change, movement, a pickup/drop or an attack start (or chain cancel).
 function applyIntent(a: Actor, mask: InputMask, heading: number, freshAttack: boolean, freshPickup: boolean, items: Item[]): void {
+  if (a.state === 'roll') {
+    walkBy(a, ROLL_SPEED);
+    return;
+  }
   if (a.state === 'attack' && a.move !== null) {
     const data = WORLD_MOVES[a.move];
     const activeOver = a.frame >= data.startup + data.active;
@@ -340,6 +359,11 @@ function applyIntent(a: Actor, mask: InputMask, heading: number, freshAttack: bo
       return;
     }
   }
+  if (has(mask, WBIT.CROUCH) && has(mask, WBIT.RUN) && heading >= 0 && a.rollCd === 0) {
+    a.state = 'roll';
+    a.frame = 0;
+    return;
+  }
   if (has(mask, WBIT.CROUCH)) {
     a.state = 'crouch';
     return;
@@ -359,6 +383,7 @@ function connects(att: Actor, def: Actor): boolean {
   const data = WORLD_MOVES[att.move];
   if (att.frame < data.startup || att.frame >= data.startup + data.active) return false;
   if (def.state === 'dead' || def.invuln > 0) return false;
+  if (def.state === 'roll' && def.frame < ROLL_SAFE_FRAMES) return false;
   if (def.state === 'crouch' && data.level === 'high') return false;
 
   const dx = def.x - att.x;
@@ -461,6 +486,22 @@ function act(a: Actor, mask: InputMask, items: Item[]): void {
   a.pickHeld = has(mask, WBIT.PICKUP);
 }
 
+// The tossed weapon leaves the hand on the first active frame and lands at the throw's reach (gone if it wears out).
+function releaseToss(a: Actor, items: Item[]): void {
+  if (a.state !== 'attack' || a.move !== 'wToss' || a.frame !== WORLD_MOVES.wToss.startup || a.weapon === null) return;
+  const durability = a.durability - 1;
+  if (durability > 0) {
+    items.push({
+      kind: a.weapon,
+      x: clamp(a.x + Math.trunc((WEAPON_TOSS_REACH_PX * SUB * DIR_COS[a.dir]) / 256), MIN_X, MAX_X),
+      y: clamp(a.y + Math.trunc((WEAPON_TOSS_REACH_PX * SUB * DIR_SIN[a.dir]) / 256), MIN_Y, MAX_Y),
+      durability,
+    });
+  }
+  a.weapon = null;
+  a.durability = 0;
+}
+
 export function stepWorld(state: WorldState, inputs: [InputMask, InputMask]): WorldState {
   const player = cloneActor(state.player);
   const general = cloneActor(state.general);
@@ -470,6 +511,8 @@ export function stepWorld(state: WorldState, inputs: [InputMask, InputMask]): Wo
   advanceTimers(general);
   act(player, inputs[0], items);
   act(general, inputs[1], items);
+  releaseToss(player, items);
+  releaseToss(general, items);
   separate(player, general);
 
   // Hits are evaluated against the state at the start of the hit phase, so trades resolve together.
@@ -521,6 +564,7 @@ export function hashWorld(state: WorldState): number {
     h = mix(h, a.lastTapDir);
     h = mix(h, a.tapAge);
     h = mix(h, a.dashArmed);
+    h = mix(h, a.rollCd);
     h = mix(h, a.skills ? 1 : 0);
     h = mix(h, a.stamina);
     for (const v of a.cd) h = mix(h, v);

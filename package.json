@@ -10,6 +10,7 @@
     "test": "node --test \"test/**/*.test.ts\"",
     "train": "node scripts/train.ts snake 50 ./tmp/q-test.json",
     "train:dqn": "node scripts/train-dqn.ts",
+    "train:fighter": "node scripts/train-fighter.ts",
     "compare": "node scripts/compare.ts snake",
     "migrate": "node scripts/migrate.ts",
     "trainer": "node scripts/trainer.ts",
