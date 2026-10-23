@@ -20,6 +20,7 @@ export type Actor = {
   hitDone: boolean;
   stun: number; // total duration of the current hitstun
   invuln: number; // frames of invulnerability left
+  atkHeld: boolean; // an attack button was down last frame, so holding it does not chain attacks
 };
 
 export type WorldState = {
@@ -44,6 +45,10 @@ const MAX_Y = (WORLD_HEIGHT - BODY_HALF_WIDTH) * SUB;
 const START_PLAYER = { x: 700 * SUB, y: 600 * SUB, dir: 0 };
 const START_GENERAL = { x: 900 * SUB, y: 600 * SUB, dir: 8 };
 const NPC_SEED_XOR = 0x9e3779b9;
+const ATTACK_BITS = BIT.THRUST | BIT.SWEEP | BIT.CHOP;
+const BODY_DIAMETER = 2 * BODY_HALF_WIDTH * SUB;
+// How far a landed hit shoves the defender along the attacker's facing, in px.
+const KNOCKBACK_PX: Record<WorldMoveId, number> = { thrust: 20, sweep: 28, chop: 44 };
 
 const STATE_INDEX: Record<ActorStateName, number> = { idle: 0, walk: 1, attack: 2, hitstun: 3, dead: 4 };
 const MOVE_INDEX: Record<WorldMoveId, number> = { thrust: 0, sweep: 1, chop: 2 };
@@ -58,6 +63,7 @@ function makeActor(start: { x: number; y: number; dir: number }): Actor {
     hitDone: false,
     stun: 0,
     invuln: 0,
+    atkHeld: false,
   };
 }
 
@@ -115,14 +121,14 @@ function pickAttack(mask: InputMask): WorldMoveId | null {
 }
 
 // Step (a): turn the input into a facing change, movement or an attack start.
-function applyIntent(a: Actor, mask: InputMask): void {
+function applyIntent(a: Actor, mask: InputMask, freshAttack: boolean): void {
   if (a.state !== 'idle' && a.state !== 'walk') return;
   const dx = (has(mask, BIT.RIGHT) ? 1 : 0) - (has(mask, BIT.LEFT) ? 1 : 0);
   const dy = (has(mask, BIT.DOWN) ? 1 : 0) - (has(mask, BIT.UP) ? 1 : 0);
   const heading = dirFromVector(dx as -1 | 0 | 1, dy as -1 | 0 | 1);
   if (heading >= 0) a.dir = heading;
 
-  const move = pickAttack(mask);
+  const move = freshAttack ? pickAttack(mask) : null;
   if (move !== null) {
     a.state = 'attack';
     a.move = move;
@@ -151,7 +157,6 @@ function connects(att: Actor, def: Actor): boolean {
   const reach = (data.reachPx + BODY_HALF_WIDTH) * SUB;
   const d2 = dx * dx + dy * dy;
   if (d2 > reach * reach) return false;
-  if (d2 === 0) return true;
   // dot is the target vector projected on the facing, scaled by 256; the arc test is dot >= |d| * cos(arc).
   const dot = dx * DIR_COS[att.dir] + dy * DIR_SIN[att.dir];
   if (dot <= 0) return false;
@@ -163,6 +168,9 @@ function applyHit(att: Actor, def: Actor): void {
   if (att.move === null) return;
   const data = MOVES[att.move];
   def.hp -= data.damage;
+  const push = KNOCKBACK_PX[att.move];
+  def.x = clamp(def.x + Math.trunc((push * DIR_COS[att.dir] * SUB) / 256), MIN_X, MAX_X);
+  def.y = clamp(def.y + Math.trunc((push * DIR_SIN[att.dir] * SUB) / 256), MIN_Y, MAX_Y);
   def.move = null;
   def.hitDone = false;
   def.frame = 0;
@@ -176,14 +184,42 @@ function applyHit(att: Actor, def: Actor): void {
   def.stun = data.hitstun;
 }
 
+// Living bodies cannot overlap: push both apart along the line between them by half the overlap each.
+function separate(a: Actor, b: Actor): void {
+  if (a.state === 'dead' || b.state === 'dead') return;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const d2 = dx * dx + dy * dy;
+  if (d2 >= BODY_DIAMETER * BODY_DIAMETER) return;
+  if (d2 === 0) {
+    // Exactly stacked: split along x so the result stays deterministic.
+    const half = Math.trunc(BODY_DIAMETER / 2);
+    a.x = clamp(a.x - half, MIN_X, MAX_X);
+    b.x = clamp(b.x + half, MIN_X, MAX_X);
+    return;
+  }
+  // sqrt of an integer below 2^53 is correctly rounded, so every engine agrees.
+  const d = Math.max(1, Math.floor(Math.sqrt(d2)));
+  const overlapHalf = Math.trunc((BODY_DIAMETER - d) / 2) + 1;
+  const ox = Math.trunc((dx * overlapHalf) / d);
+  const oy = Math.trunc((dy * overlapHalf) / d);
+  a.x = clamp(a.x - ox, MIN_X, MAX_X);
+  a.y = clamp(a.y - oy, MIN_Y, MAX_Y);
+  b.x = clamp(b.x + ox, MIN_X, MAX_X);
+  b.y = clamp(b.y + oy, MIN_Y, MAX_Y);
+}
+
 export function stepWorld(state: WorldState, inputs: [InputMask, InputMask]): WorldState {
   const player = { ...state.player };
   const general = { ...state.general };
 
   advanceTimers(player);
   advanceTimers(general);
-  applyIntent(player, inputs[0]);
-  applyIntent(general, inputs[1]);
+  applyIntent(player, inputs[0], (inputs[0] & ATTACK_BITS) !== 0 && !player.atkHeld);
+  applyIntent(general, inputs[1], (inputs[1] & ATTACK_BITS) !== 0 && !general.atkHeld);
+  player.atkHeld = (inputs[0] & ATTACK_BITS) !== 0;
+  general.atkHeld = (inputs[1] & ATTACK_BITS) !== 0;
+  separate(player, general);
 
   // Hits are evaluated against the state at the start of the hit phase, so trades resolve together.
   const snapP = { ...player };
@@ -223,6 +259,7 @@ export function hashWorld(state: WorldState): number {
     h = mix(h, a.hitDone ? 1 : 0);
     h = mix(h, a.stun);
     h = mix(h, a.invuln);
+    h = mix(h, a.atkHeld ? 1 : 0);
   }
   return h >>> 0;
 }

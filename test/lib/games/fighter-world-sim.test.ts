@@ -70,7 +70,7 @@ describe('world determinism', () => {
     for (let i = 0; i < 600; i++) {
       script.push(i % 90 < 40 ? BIT.RIGHT | (i % 180 < 90 ? BIT.DOWN : BIT.UP) : i % 90 < 60 ? BIT.THRUST : i % 90 < 75 ? BIT.LEFT : BIT.CHOP);
     }
-    assert.equal(hashWorld(simulateWorld(42, script)), 3536175356);
+    assert.equal(hashWorld(simulateWorld(42, script)), 694741667);
   });
 });
 
@@ -152,6 +152,53 @@ describe('bounds and integers', () => {
       }
       assert.ok(Number.isInteger(s.rng) && Number.isInteger(s.tick));
     }
+  });
+});
+
+describe('body, knockback and held buttons', () => {
+  test('holding an attack button starts one attack, not a chain', () => {
+    let s = placed(400, 400, 0, 1200, 400);
+    const total = MOVES.thrust.startup + MOVES.thrust.active + MOVES.thrust.recovery + 5;
+    let starts = 0;
+    for (let i = 0; i < total; i++) {
+      const before = s.player.state;
+      s = stepWorld(s, [BIT.THRUST, 0]);
+      if (s.player.state === 'attack' && before !== 'attack') starts += 1;
+    }
+    assert.equal(starts, 1);
+    assert.equal(s.player.state, 'idle');
+  });
+
+  test('releasing and pressing again starts a new attack', () => {
+    let s = placed(400, 400, 0, 1200, 400);
+    s = stepWorld(s, [BIT.THRUST, 0]);
+    for (let i = 0; i < 60; i++) s = stepWorld(s, [0, 0]);
+    s = stepWorld(s, [BIT.THRUST, 0]);
+    assert.equal(s.player.state, 'attack');
+  });
+
+  test('a landed hit shoves the target along the attacker facing', () => {
+    const start = placed(400, 400, 0, 500, 410);
+    const s = strike(start, BIT.THRUST, MOVES.thrust.startup + MOVES.thrust.active + 1);
+    assert.ok(s.general.x > start.general.x);
+  });
+
+  test('two living bodies are pushed apart when they overlap', () => {
+    const s = stepWorld(placed(400, 400, 0, 410, 400), [0, 0]);
+    const dx = s.general.x - s.player.x;
+    assert.ok(dx >= 2 * 18 * SUB - 2);
+  });
+
+  test('exactly stacked bodies separate deterministically along x', () => {
+    const s = stepWorld(placed(400, 400, 0, 400, 400), [0, 0]);
+    assert.ok(s.player.x < s.general.x);
+    assert.equal(s.player.y, s.general.y);
+  });
+
+  test('a dead body does not block', () => {
+    const w = placed(400, 400, 0, 410, 400);
+    const s = stepWorld({ ...w, general: { ...w.general, state: 'dead', hp: 0 } }, [0, 0]);
+    assert.equal(s.player.x, w.player.x);
   });
 });
 
