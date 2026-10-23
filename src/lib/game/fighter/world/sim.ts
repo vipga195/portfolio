@@ -7,6 +7,7 @@ import { PICKUP_FRAMES, PICKUP_RANGE_PX, WEAPON_DURABILITY, WEAPON_MOVES, WORLD_
 import type { WeaponKind, WorldMoveId } from './moves.ts';
 import { createWorldNpc, npcStepWorld } from './npc.ts';
 import type { WorldNpcState } from './npc.ts';
+import { CMD_LEN, MAX_STAMINA, SKILL_COUNT, SKILL_DEFS, STAMINA_REGEN, TOK_CROUCH, matchSkill } from './skills.ts';
 import { WBIT } from './winputs.ts';
 
 export type ActorStateName = 'idle' | 'walk' | 'run' | 'crouch' | 'attack' | 'pickup' | 'hitstun' | 'dead';
@@ -38,6 +39,12 @@ export type Actor = {
   lastTapDir: number; // heading of the last direction tap, -1 = none
   tapAge: number; // frames since the direction was last released, saturating at TAP_AGE_MAX
   dashArmed: number; // frames left in which ATK_B triggers a dash kick, 0 = not armed
+  skills: boolean; // command skills enabled (off for NPC and training actors)
+  stamina: number; // spent by skills, regenerates every frame
+  cd: number[]; // frames left on each SKILL_DEFS cooldown
+  cmdTok: number[]; // last CMD_LEN command tokens (headings or TOK_CROUCH), -1 = empty, oldest first
+  cmdAge: number[]; // frames since each token was logged, saturating at TAP_AGE_MAX
+  crouchHeld: boolean; // CROUCH was down last frame
 };
 
 export type WorldState = {
@@ -54,6 +61,7 @@ export const RESPAWN_FRAMES = 120;
 export const INVULN_FRAMES = 60;
 export const RUN_SPEED = Math.trunc((WALK_SPEED * 17) / 10); // subpx/frame
 export const DASH_SPEED = 2 * WALK_SPEED; // subpx/frame while a dash kick lunges
+export const BLINK_SPEED = 5 * WALK_SPEED; // subpx/frame while a blink strike lunges
 export const MAX_CHAIN = 3;
 export const TAP_WINDOW = 15; // frames
 const TAP_AGE_MAX = 255;
@@ -77,10 +85,11 @@ const STATE_INDEX: Record<ActorStateName, number> = { idle: 0, walk: 1, run: 2, 
 const MOVE_INDEX: Record<WorldMoveId, number> = {
   punch: 0, kick: 1, heavy: 2, lowKick: 3, uppercut: 4, spin: 5, dash: 6,
   wThrust: 7, wSweep: 8, wChop: 9, sThrust: 10, sSweep: 11, sChop: 12,
+  blink: 13, burst: 14,
 };
 const WEAPON_INDEX: Record<WeaponKind, number> = { spear: 0, staff: 1 };
 
-function makeActor(start: { x: number; y: number; dir: number }): Actor {
+function makeActor(start: { x: number; y: number; dir: number }, skills: boolean): Actor {
   return {
     ...start,
     hp: MAX_HP,
@@ -99,15 +108,27 @@ function makeActor(start: { x: number; y: number; dir: number }): Actor {
     lastTapDir: -1,
     tapAge: TAP_AGE_MAX,
     dashArmed: 0,
+    skills,
+    stamina: MAX_STAMINA,
+    cd: new Array<number>(SKILL_COUNT).fill(0),
+    cmdTok: new Array<number>(CMD_LEN).fill(-1),
+    cmdAge: new Array<number>(CMD_LEN).fill(TAP_AGE_MAX),
+    crouchHeld: false,
   };
 }
 
-export function createWorld(seed: number): WorldState {
+// Copies an actor including its arrays, so a step never mutates the previous state.
+function cloneActor(a: Actor): Actor {
+  return { ...a, cd: [...a.cd], cmdTok: [...a.cmdTok], cmdAge: [...a.cmdAge] };
+}
+
+// Command skills are off by default: training and NPC actors must keep their exact old behavior.
+export function createWorld(seed: number, options: { playerSkills?: boolean } = {}): WorldState {
   return {
     tick: 0,
     rng: seed >>> 0,
-    player: makeActor(START_PLAYER),
-    general: makeActor(START_GENERAL),
+    player: makeActor(START_PLAYER, options.playerSkills === true),
+    general: makeActor(START_GENERAL, false),
     items: START_ITEMS.map((i) => ({ ...i, durability: WEAPON_DURABILITY[i.kind] })),
   };
 }
@@ -129,6 +150,9 @@ function advanceTimers(a: Actor): void {
   if (a.invuln > 0) a.invuln -= 1;
   if (a.dashArmed > 0) a.dashArmed -= 1;
   if (a.tapAge < TAP_AGE_MAX) a.tapAge += 1;
+  if (a.state !== 'dead' && a.stamina < MAX_STAMINA) a.stamina = Math.min(MAX_STAMINA, a.stamina + STAMINA_REGEN);
+  for (let i = 0; i < SKILL_COUNT; i++) if (a.cd[i] > 0) a.cd[i] -= 1;
+  for (let i = 0; i < CMD_LEN; i++) if (a.cmdAge[i] < TAP_AGE_MAX) a.cmdAge[i] += 1;
   switch (a.state) {
     case 'attack': {
       if (a.move === null) {
@@ -153,6 +177,7 @@ function advanceTimers(a: Actor): void {
       if (a.frame >= RESPAWN_FRAMES) {
         toIdle(a);
         a.hp = MAX_HP;
+        a.stamina = MAX_STAMINA;
         a.invuln = INVULN_FRAMES;
       }
       return;
@@ -185,12 +210,40 @@ function trackTaps(a: Actor, heading: number): void {
   a.heading = heading;
 }
 
+// Shifts a command token into the buffer (oldest drops off).
+function pushToken(a: Actor, token: number): void {
+  for (let i = 0; i < CMD_LEN - 1; i++) {
+    a.cmdTok[i] = a.cmdTok[i + 1];
+    a.cmdAge[i] = a.cmdAge[i + 1];
+  }
+  a.cmdTok[CMD_LEN - 1] = token;
+  a.cmdAge[CMD_LEN - 1] = 0;
+}
+
+// Logs a heading change and a fresh CROUCH press as command tokens. Must run before trackTaps updates a.heading.
+function trackCommand(a: Actor, mask: InputMask, heading: number): void {
+  if (heading >= 0 && heading !== a.heading) pushToken(a, heading);
+  const crouching = has(mask, WBIT.CROUCH);
+  if (crouching && !a.crouchHeld) pushToken(a, TOK_CROUCH);
+  a.crouchHeld = crouching;
+}
+
+// Skill whose command ends the buffer for this press, if enabled, affordable and off cooldown; -1 otherwise.
+function readySkill(a: Actor, mask: InputMask, heading: number): number {
+  if (!a.skills) return -1;
+  const idx = matchSkill(a.cmdTok, a.cmdAge, mask & ATTACK_BITS, heading >= 0 ? heading : a.dir);
+  if (idx < 0 || a.cd[idx] > 0 || a.stamina < SKILL_DEFS[idx].cost) return -1;
+  return idx;
+}
+
 // Move chosen by a fresh attack press, from the held weapon, crouch, combo bits and the dash window.
-function chooseMove(a: Actor, mask: InputMask): WorldMoveId | null {
+function chooseMove(a: Actor, mask: InputMask, heading: number, allowSkill: boolean): WorldMoveId | null {
   const atkA = has(mask, WBIT.ATK_A);
   const atkB = has(mask, WBIT.ATK_B);
   const atkC = has(mask, WBIT.ATK_C);
   if (a.weapon !== null) {
+    const armedSkill = allowSkill ? readySkill(a, mask, heading) : -1;
+    if (armedSkill >= 0) return SKILL_DEFS[armedSkill].move;
     const set = WEAPON_MOVES[a.weapon];
     return atkA ? set[0] : atkB ? set[1] : atkC ? set[2] : null;
   }
@@ -199,6 +252,8 @@ function chooseMove(a: Actor, mask: InputMask): WorldMoveId | null {
   if (atkB && a.dashArmed > 0) return 'dash';
   if (crouching && atkB) return 'lowKick';
   if (crouching && atkA) return 'uppercut';
+  const skill = allowSkill ? readySkill(a, mask, heading) : -1;
+  if (skill >= 0) return SKILL_DEFS[skill].move;
   return atkA ? 'punch' : atkB ? 'kick' : atkC ? 'heavy' : null;
 }
 
@@ -209,6 +264,12 @@ function startAttack(a: Actor, move: WorldMoveId, chain: number): void {
   a.hitDone = false;
   a.chain = chain;
   if (move === 'dash') a.dashArmed = 0;
+  const skill = SKILL_DEFS.findIndex((def) => def.move === move);
+  if (skill >= 0) {
+    a.stamina -= SKILL_DEFS[skill].cost;
+    a.cd[skill] = SKILL_DEFS[skill].cooldown;
+    a.cmdTok.fill(-1);
+  }
 }
 
 function nearestItemIndex(a: Actor, items: Item[]): number {
@@ -255,14 +316,17 @@ function applyIntent(a: Actor, mask: InputMask, heading: number, freshAttack: bo
     const data = WORLD_MOVES[a.move];
     const activeOver = a.frame >= data.startup + data.active;
     if (freshAttack && a.hitDone && activeOver && a.chain < MAX_CHAIN) {
-      const next = chooseMove(a, mask);
+      const next = chooseMove(a, mask, heading, false);
       if (next !== null) {
         if (heading >= 0) a.dir = heading;
         startAttack(a, next, a.chain + 1);
         return;
       }
     }
-    if (a.move === 'dash' && a.frame < data.startup + data.active) walkBy(a, DASH_SPEED);
+    if (a.frame < data.startup + data.active) {
+      if (a.move === 'dash') walkBy(a, DASH_SPEED);
+      else if (a.move === 'blink') walkBy(a, BLINK_SPEED);
+    }
     return;
   }
   if (a.state !== 'idle' && a.state !== 'walk' && a.state !== 'run' && a.state !== 'crouch') return;
@@ -270,7 +334,7 @@ function applyIntent(a: Actor, mask: InputMask, heading: number, freshAttack: bo
 
   if (freshPickup && tryPickup(a, items)) return;
   if (freshAttack) {
-    const move = chooseMove(a, mask);
+    const move = chooseMove(a, mask, heading, true);
     if (move !== null) {
       startAttack(a, move, 1);
       return;
@@ -331,8 +395,17 @@ function applyHit(att: Actor, def: Actor, items: Item[]): void {
     push = Math.trunc((push * 3) / 2);
   }
   def.hp -= damage;
-  def.x = clamp(def.x + Math.trunc((push * DIR_COS[att.dir] * SUB) / 256), MIN_X, MAX_X);
-  def.y = clamp(def.y + Math.trunc((push * DIR_SIN[att.dir] * SUB) / 256), MIN_Y, MAX_Y);
+  if (att.move === 'burst') {
+    // Radial knockback: along the attacker-to-defender line (any direction when exactly stacked: none).
+    const dx = def.x - att.x;
+    const dy = def.y - att.y;
+    const d = Math.max(1, Math.floor(Math.sqrt(dx * dx + dy * dy)));
+    def.x = clamp(def.x + Math.trunc((push * dx * SUB) / d), MIN_X, MAX_X);
+    def.y = clamp(def.y + Math.trunc((push * dy * SUB) / d), MIN_Y, MAX_Y);
+  } else {
+    def.x = clamp(def.x + Math.trunc((push * DIR_COS[att.dir] * SUB) / 256), MIN_X, MAX_X);
+    def.y = clamp(def.y + Math.trunc((push * DIR_SIN[att.dir] * SUB) / 256), MIN_Y, MAX_Y);
+  }
   def.move = null;
   def.hitDone = false;
   def.frame = 0;
@@ -379,6 +452,7 @@ function separate(a: Actor, b: Actor): void {
 
 function act(a: Actor, mask: InputMask, items: Item[]): void {
   const heading = headingOf(mask);
+  trackCommand(a, mask, heading);
   trackTaps(a, heading);
   const freshAttack = (mask & ATTACK_BITS) !== 0 && !a.atkHeld;
   const freshPickup = has(mask, WBIT.PICKUP) && !a.pickHeld;
@@ -388,8 +462,8 @@ function act(a: Actor, mask: InputMask, items: Item[]): void {
 }
 
 export function stepWorld(state: WorldState, inputs: [InputMask, InputMask]): WorldState {
-  const player = { ...state.player };
-  const general = { ...state.general };
+  const player = cloneActor(state.player);
+  const general = cloneActor(state.general);
   const items = state.items.map((i) => ({ ...i }));
 
   advanceTimers(player);
@@ -447,6 +521,12 @@ export function hashWorld(state: WorldState): number {
     h = mix(h, a.lastTapDir);
     h = mix(h, a.tapAge);
     h = mix(h, a.dashArmed);
+    h = mix(h, a.skills ? 1 : 0);
+    h = mix(h, a.stamina);
+    for (const v of a.cd) h = mix(h, v);
+    for (const v of a.cmdTok) h = mix(h, v);
+    for (const v of a.cmdAge) h = mix(h, v);
+    h = mix(h, a.crouchHeld ? 1 : 0);
   }
   h = mix(h, state.items.length);
   for (const item of state.items) {
@@ -460,7 +540,7 @@ export function hashWorld(state: WorldState): number {
 
 // World plus its NPC, seeded the same way for the live game and for replays.
 export function createWorldSession(seed: number): { world: WorldState; npc: WorldNpcState } {
-  return { world: createWorld(seed), npc: createWorldNpc((seed ^ NPC_SEED_XOR) >>> 0) };
+  return { world: createWorld(seed, { playerSkills: true }), npc: createWorldNpc((seed ^ NPC_SEED_XOR) >>> 0) };
 }
 
 // Runs one frame per player input; the general is driven by the level-1 NPC.

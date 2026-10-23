@@ -101,6 +101,7 @@ function poleShape(a: Actor): PoleShape {
   const arc=arcSteps*Math.PI/8;
   const raised=kind==="chop"? -70:kind==="sweep"? -12:0;
   const reach0=kind==="thrust"? 0.7:1;
+  blink: "dash", burst: "spin", // placeholder poses until the skill animations land
   const reach1=kind==="thrust"? 1.5:1.1;
   const end: PoleShape={ reach: reach1, tipLift: kind==="chop"? 24:raised/2, swing: kind==="sweep"? arc:0 };
   const cocked: PoleShape={ reach: reach0, tipLift: raised, swing: kind==="sweep"? -arc:0 };

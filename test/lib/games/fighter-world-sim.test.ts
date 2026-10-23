@@ -21,7 +21,7 @@ import {
   simulateWorld,
   stepWorld,
 } from '../../../src/lib/game/fighter/world/sim.ts';
-import type { Item, WorldState } from '../../../src/lib/game/fighter/world/sim.ts';
+import type { Actor, Item, WorldState } from '../../../src/lib/game/fighter/world/sim.ts';
 import { WBIT } from '../../../src/lib/game/fighter/world/winputs.ts';
 import { seededRng } from '../../../src/lib/rng.ts';
 
@@ -112,7 +112,25 @@ describe('world determinism', () => {
       else if (phase < 90) script.push(phase % 6 < 3 ? B | C : WBIT.CROUCH | A);
       else script.push(phase % 5 === 0 ? C : WBIT.UP);
     }
-    assert.equal(hashWorld(simulateWorld(42, script)), 18960950);
+    assert.equal(hashWorld(simulateWorld(42, script)), 4226971988); // re-baselined when skill state joined the hash; end state pinned below
+  });
+
+  // Pins the observable end state of the same script, so a hash re-baseline cannot hide a behavior change.
+  test('end state of the fixed input script is unchanged by the skill system', () => {
+    const script: InputMask[] = [];
+    for (let i = 0; i < 900; i++) {
+      const phase = i % 120;
+      if (phase < 40) script.push(WBIT.RIGHT | (i % 240 < 120 ? WBIT.DOWN : WBIT.UP) | (i % 3 === 0 ? WBIT.RUN : 0));
+      else if (phase < 60) script.push(phase % 4 < 2 ? A : 0);
+      else if (phase < 75) script.push(WBIT.LEFT | WBIT.PICKUP);
+      else if (phase < 90) script.push(phase % 6 < 3 ? B | C : WBIT.CROUCH | A);
+      else script.push(phase % 5 === 0 ? C : WBIT.UP);
+    }
+    const s = simulateWorld(42, script);
+    const pick = (a: Actor): unknown => ({ x: a.x, y: a.y, hp: a.hp, state: a.state, dir: a.dir });
+    assert.deepEqual(pick(s.player), { x: 250631, y: 150217, hp: 220, state: 'idle', dir: 14 });
+    assert.deepEqual(pick(s.general), { x: 220481, y: 141659, hp: 770, state: 'walk', dir: 2 });
+    assert.equal(s.items.length, 1);
   });
 });
 
@@ -633,5 +651,138 @@ describe('duel lock', () => {
       p2.push([BIT.LEFT, BIT.SWEEP, 0, BIT.THRUST, BIT.LEFT | BIT.DOWN, BIT.CHOP][Math.floor(i / 17) % 6]);
     }
     assert.equal(hashFight(simulate(7, p1, p2)), 3869626377);
+  });
+});
+
+describe('command skills', () => {
+  const L = WBIT.LEFT;
+  const R = WBIT.RIGHT;
+  const CR = WBIT.CROUCH;
+
+  function skilled(px: number, py: number, dir: number, gx: number, gy: number): WorldState {
+    const w = placed(px, py, dir, gx, gy);
+    return { ...w, player: { ...w.player, skills: true } };
+  }
+
+  // Feeds the player masks one per frame while the general stands still.
+  function feed(start: WorldState, masks: InputMask[]): WorldState {
+    let s = start;
+    for (const m of masks) s = stepWorld(s, [m, 0]);
+    return s;
+  }
+
+  const BLINK_CMD = [L, L, R | C];
+  const BURST_CMD = [CR, 0, CR | C];
+
+  test('back, toward + C casts a blink strike and spends stamina and cooldown', () => {
+    const s = feed(skilled(300, 600, 0, 1500, 100), BLINK_CMD);
+    assert.equal(s.player.state, 'attack');
+    assert.equal(s.player.move, 'blink');
+    assert.equal(s.player.stamina, 600);
+    assert.equal(s.player.cd[0], 240);
+  });
+
+  test('crouch, crouch + C casts a burst', () => {
+    const s = feed(skilled(300, 600, 0, 1500, 100), BURST_CMD);
+    assert.equal(s.player.move, 'burst');
+    assert.equal(s.player.stamina, 1000 - 450);
+    assert.equal(s.player.cd[1], 300);
+  });
+
+  test('a command older than the window falls back to the plain move', () => {
+    const s = feed(skilled(300, 600, 0, 1500, 100), [L, ...new Array<InputMask>(25).fill(0), R | C]);
+    assert.equal(s.player.move, 'heavy');
+    assert.equal(s.player.stamina, 1000);
+  });
+
+  test('an actor with skills off ignores the command', () => {
+    const s = feed(placed(300, 600, 0, 1500, 100), BLINK_CMD);
+    assert.equal(s.player.move, 'heavy');
+  });
+
+  test('not enough stamina falls back to the plain move', () => {
+    const w = skilled(300, 600, 0, 1500, 100);
+    const s = feed({ ...w, player: { ...w.player, stamina: 100 } }, BLINK_CMD);
+    assert.equal(s.player.move, 'heavy');
+  });
+
+  test('a skill on cooldown falls back to the plain move, then works again after it', () => {
+    let s = feed(skilled(300, 600, 0, 1500, 100), BLINK_CMD);
+    s = run(s, 0, total('blink'));
+    assert.equal(s.player.state, 'idle');
+    assert.ok(s.player.cd[0] > 0);
+    s = feed(s, BLINK_CMD);
+    assert.equal(s.player.move, 'heavy');
+    s = run(s, 0, 260);
+    assert.equal(s.player.cd[0], 0);
+    s = feed(s, BLINK_CMD);
+    assert.equal(s.player.move, 'blink');
+  });
+
+  test('stamina regenerates every frame up to the cap', () => {
+    let s = feed(skilled(300, 600, 0, 1500, 100), BLINK_CMD);
+    const before = s.player.stamina;
+    s = run(s, 0, 10);
+    assert.equal(s.player.stamina, before + 30);
+    s = run(s, 0, 400);
+    assert.equal(s.player.stamina, 1000);
+  });
+
+  test('blink lunges forward during its startup and active frames', () => {
+    let s = feed(skilled(300, 600, 0, 1500, 100), BLINK_CMD);
+    const x0 = s.player.x;
+    s = run(s, 0, total('blink'));
+    const { startup, active } = WORLD_MOVES.blink;
+    assert.equal(s.player.x - x0, (startup + active - 1) * 5 * WALK_SPEED);
+  });
+
+  test('blink hits a target in front for 160 damage', () => {
+    const s = feed(skilled(300, 600, 0, 360, 600), BLINK_CMD);
+    const end = run(s, 0, total('blink'));
+    assert.equal(end.general.hp, MAX_HP - WORLD_MOVES.blink.damage);
+  });
+
+  test('burst hits a target behind the caster and pushes it away from the caster', () => {
+    const start = skilled(700, 600, 0, 650, 600);
+    const gx = start.general.x;
+    const s = feed(start, BURST_CMD);
+    const end = run(s, 0, total('burst'));
+    assert.equal(end.general.hp, MAX_HP - WORLD_MOVES.burst.damage);
+    assert.ok(end.general.x < gx);
+  });
+
+  test('burst misses a target outside its radius', () => {
+    const s = feed(skilled(300, 600, 0, 700, 600), BURST_CMD);
+    const end = run(s, 0, total('burst'));
+    assert.equal(end.general.hp, MAX_HP);
+  });
+
+  test('existing moves keep precedence: B+C spin, crouch+A uppercut', () => {
+    assert.equal(feed(skilled(300, 600, 0, 1500, 100), [L, R | B | C]).player.move, 'spin');
+    assert.equal(feed(skilled(300, 600, 0, 1500, 100), [CR, 0, CR | A]).player.move, 'uppercut');
+  });
+
+  test('a double-tap and B is still a dash kick', () => {
+    const s = feed(skilled(300, 600, 0, 1500, 100), [R, 0, R, R | B]);
+    assert.equal(s.player.move, 'dash');
+  });
+
+  test('chain links never cast a skill', () => {
+    let s = feed(skilled(300, 600, 0, 340, 600), [A]);
+    s = run(s, 0, WORLD_MOVES.punch.startup + WORLD_MOVES.punch.active);
+    assert.equal(s.player.hitDone, true);
+    s = feed(s, [L, R | C]);
+    assert.equal(s.player.move, 'heavy');
+    assert.equal(s.player.chain, 2);
+    assert.equal(s.player.stamina, 1000);
+  });
+
+  test('skill state is part of the hash and a step never mutates its input', () => {
+    const w = skilled(300, 600, 0, 1500, 100);
+    const snapshot = JSON.stringify(w);
+    const next = stepWorld(w, [CR, 0]);
+    assert.equal(JSON.stringify(w), snapshot);
+    assert.notEqual(hashWorld(next), hashWorld({ ...next, player: { ...next.player, cmdTok: [-1, -1, -1] } }));
+    assert.notEqual(hashWorld(w), hashWorld({ ...w, player: { ...w.player, stamina: w.player.stamina - 1 } }));
   });
 });

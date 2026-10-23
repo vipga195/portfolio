@@ -10,6 +10,8 @@ export type WorldMoveId =
   | 'uppercut'
   | 'spin'
   | 'dash'
+  | 'blink'
+  | 'burst'
   | 'wThrust'
   | 'wSweep'
   | 'wChop'
@@ -72,6 +74,8 @@ export const WORLD_MOVES: Record<WorldMoveId, WorldMoveData> = {
   uppercut: unarmed(6, 4, 20, 110, 24, 50, 2, 'mid', 40),
   spin: unarmed(10, 5, 22, 90, 18, 70, 8, 'mid', 30),
   dash: unarmed(6, 6, 18, 100, 20, 60, 2, 'mid', 30),
+  blink: unarmed(4, 8, 24, 160, 26, 50, 2, 'mid', 40),
+  burst: unarmed(8, 4, 20, 70, 22, 120, 8, 'mid', 90),
   wThrust: weapon('thrust', 1, 20, MOVES.thrust.reachPx, 100),
   wSweep: weapon('sweep', 3, 28, MOVES.sweep.reachPx, 100),
   wChop: weapon('chop', 2, 44, MOVES.chop.reachPx, 100),
