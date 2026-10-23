@@ -5,6 +5,8 @@ import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 import { getIntroPhase, subscribeIntro } from "@/lib/intro";
 
@@ -54,7 +56,7 @@ export default function SmoothScroll({
     ScrollTrigger.config({
       autoRefreshEvents: "resize,load,visibilitychange,DOMContentLoaded",
     });
-    // TEMP preview: ignore reduced motion (restore "(prefers-reduced-motion: no-preference)")
+    // Runs regardless of prefers-reduced-motion (deliberate design choice)
     gsap.matchMedia().add("all", () => {
       const perf = getPerformanceLevel();
       const isTouch = ScrollTrigger.isTouch === 1;
@@ -164,6 +166,17 @@ export default function SmoothScroll({
       window.removeEventListener("load", scrollToTop);
     };
   });
+
+  // ScrollSmoother only applies data-speed/data-lag effects found at creation; re-apply them for pages mounted by client navigation
+  const pathname = usePathname();
+  // Compare paths instead of skipping the first run: StrictMode re-runs the effect in dev and would apply them twice
+  const createdPath = useRef<string | null>(pathname);
+  useEffect(() => {
+    if (pathname === createdPath.current) return;
+    createdPath.current = null;
+    const effects = ScrollSmoother.get()?.effects("[data-speed], [data-lag]");
+    return () => effects?.forEach((st) => st.kill());
+  }, [pathname]);
 
   return (
     <div id="smooth-wrapper">

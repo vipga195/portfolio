@@ -27,6 +27,7 @@ export default function MobileMenu({ items, label, closeLabel, lang, languageLab
   // Switching language keeps the current page (e.g. the Snake page), not just the home page
   const page = stripLocalePrefix(usePathname());
   const toggle = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLElement>(null);
   const isClient = useSyncExternalStore(
     subscribe,
     () => true,
@@ -42,79 +43,94 @@ export default function MobileMenu({ items, label, closeLabel, lang, languageLab
     if (smoother) smoother.paused(true);
     else root.style.overflow = "hidden";
 
+    // The menu covers the page, so start keyboard focus inside it instead of on hidden content
+    menu.current?.querySelector("a")?.focus();
+
     const onKeyDown = (e: KeyboardEvent): void => {
       if (e.key !== "Escape") return;
       setOpen(false);
       toggle.current?.focus();
     };
+    // The header logo stays clickable above the menu; any click outside the menu and toggle closes it
+    const onClick = (e: MouseEvent): void => {
+      const target = e.target as Node;
+      if (!menu.current?.contains(target) && !toggle.current?.contains(target)) setOpen(false);
+    };
     window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("click", onClick);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("click", onClick);
       if (smoother) smoother.paused(false);
       else root.style.overflow = "";
     };
   }, [open]);
 
-  const close = (): void => setOpen(false);
+  // The clicked link becomes inert, so hand focus back to the toggle
+  const close = (): void => {
+    setOpen(false);
+    toggle.current?.focus();
+  };
 
-  // Reduced motion keeps the fade but shortens the slide to 2rem
-  // Rendered in body: the header's backdrop-filter would otherwise contain a fixed-position drawer
+  // Rendered in body so the header's mix-blend-difference does not apply to it
   // Stacked below the header (z-50) so the header toggle stays visible and acts as the close button
   const drawer = (
-    <div className="md:hidden">
-      <div
-        aria-hidden
-        onClick={close}
-        className={`fixed inset-0 z-40 bg-black/60 transition-opacity duration-300 ${
-          open ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-      />
-      {/* TEMP preview: ignore reduced motion (restore "motion-reduce:translate-x-8" on the closed state) */}
-      <nav
-        id="mobile-menu"
-        aria-label={label}
-        inert={!open}
-        className={`fixed inset-y-0 right-0 z-40 flex h-dvh w-[85vw] flex-col border-l border-white/5 bg-neutral-950 px-6 pt-20 pb-4 transition-[translate,opacity,visibility] duration-300 ease-out ${
-          open ? "visible translate-x-0 opacity-100" : "invisible translate-x-full opacity-0"
-        }`}
-      >
-        <ul className="flex-1 overflow-y-auto">
-          {items.map(({ href, label: itemLabel }) => (
-            <li key={href}>
-              <NavLink hash={href} lang={lang} onClick={close} className="block py-3 text-lg text-neutral-200 hover:text-white">
-                {itemLabel}
-              </NavLink>
+    <nav
+      ref={menu}
+      id="mobile-menu"
+      aria-label={label}
+      inert={!open}
+      // Visibility transitions only on close: on open it must flip at once so focus() in the effect lands
+      className={`fixed inset-0 z-40 flex h-dvh w-full flex-col bg-neutral-900 px-6 pt-24 pb-8 duration-300 md:px-10 ${
+        open ? "visible opacity-100 transition-opacity" : "invisible opacity-0 transition-[opacity,visibility]"
+      }`}
+    >
+      <ul className="group/menu flex-1 overflow-y-auto border-t border-neutral-800">
+        {items.map(({ href, label: itemLabel }, i) => (
+          <li key={href} className="border-b border-neutral-800">
+            <NavLink
+              hash={href}
+              lang={lang}
+              onClick={close}
+              className="flex items-baseline justify-between gap-6 py-3 font-display text-[clamp(2rem,min(8vw,9dvh),6rem)] leading-none font-light text-white uppercase transition-opacity duration-300 group-hover/menu:opacity-20 hover:opacity-100!"
+            >
+              {itemLabel}
+              <span aria-hidden className="font-mono text-base text-neutral-300">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-8 flex items-center justify-between gap-4">
+        <p className="text-xs tracking-widest text-neutral-400 uppercase">{languageLabel}</p>
+        <ul className="flex gap-2">
+          {LOCALES.map((locale) => (
+            <li key={locale}>
+              <Link
+                href={localizedPath(locale, page)}
+                hrefLang={locale}
+                lang={locale}
+                aria-label={LOCALE_NAMES[locale]}
+                aria-current={locale === lang ? "true" : undefined}
+                onClick={close}
+                className={`block border px-4 py-2 font-mono text-sm ${
+                  locale === lang
+                    ? "border-accent bg-accent text-white"
+                    : "border-neutral-700 text-neutral-200 hover:border-neutral-400"
+                }`}
+              >
+                {LOCALE_LABELS[locale]}
+              </Link>
             </li>
           ))}
         </ul>
-        <div className="border-t border-white/10 pt-4">
-          <p className="mb-2 text-xs text-neutral-400">{languageLabel}</p>
-          <ul className="flex gap-2">
-            {LOCALES.map((locale) => (
-              <li key={locale}>
-                <Link
-                  href={localizedPath(locale, page)}
-                  hrefLang={locale}
-                  lang={locale}
-                  aria-label={LOCALE_NAMES[locale]}
-                  aria-current={locale === lang ? "true" : undefined}
-                  onClick={close}
-                  className={`block rounded-full px-4 py-2 font-mono text-sm ${
-                    locale === lang ? "bg-blue-600 text-white" : "border border-neutral-700 text-neutral-200"
-                  }`}
-                >
-                  {LOCALE_LABELS[locale]}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </nav>
-    </div>
+      </div>
+    </nav>
   );
 
   return (
-    <div className="md:hidden">
+    <div className="pointer-events-auto">
       <button
         ref={toggle}
         type="button"
@@ -122,17 +138,18 @@ export default function MobileMenu({ items, label, closeLabel, lang, languageLab
         aria-expanded={open}
         aria-controls="mobile-menu"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-full hover:bg-white/5"
+        className="flex h-10 w-10 flex-col items-center justify-center gap-1.5"
       >
         <span
-          className={`h-0.5 w-5 bg-neutral-200 transition-[translate,rotate] duration-300 ${open ? "translate-y-2 rotate-45" : ""}`}
+          className={`h-0.5 w-8 bg-white transition-[translate,rotate] duration-300 ${open ? "translate-y-2 rotate-45" : ""}`}
         />
-        <span className={`h-0.5 w-5 bg-neutral-200 transition-opacity duration-300 ${open ? "opacity-0" : ""}`} />
+        <span className={`h-0.5 w-8 bg-white transition-opacity duration-300 ${open ? "opacity-0" : ""}`} />
         <span
-          className={`h-0.5 w-5 bg-neutral-200 transition-[translate,rotate] duration-300 ${open ? "-translate-y-2 -rotate-45" : ""}`}
+          className={`h-0.5 w-8 bg-white transition-[translate,rotate] duration-300 ${open ? "-translate-y-2 -rotate-45" : ""}`}
         />
       </button>
-      {isClient && createPortal(drawer, document.body)}
+      {/* Inline until hydrated so the links are in the server HTML (crawlers, no JS); it is invisible and inert there */}
+      {isClient ? createPortal(drawer, document.body) : drawer}
     </div>
   );
 }
