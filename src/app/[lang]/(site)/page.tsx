@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import ContactForm from "@/components/ContactForm";
@@ -54,7 +55,7 @@ export default async function Home({ params }: PageProps<"/[lang]">): Promise<Re
 
         <Section id="projects" title={dict.sections.projects}>
           <div className="grid gap-6 md:grid-cols-2">
-            {PROJECTS.map(({ name, url, summary, role, teamSize, stack, metrics, media }) => (
+            {PROJECTS.map(({ name, url, caseStudy, summary, role, teamSize, stack, metrics, media }) => (
               <article
                 key={name}
                 className="reveal flex flex-col rounded-2xl border border-neutral-800 p-6 transition-colors hover:border-blue-500/60"
@@ -105,6 +106,11 @@ export default async function Home({ params }: PageProps<"/[lang]">): Promise<Re
                 <div className="mt-6">
                   <Tags items={stack} />
                 </div>
+                {caseStudy&&(
+                  <Link href={localizedPath(lang, caseStudy)} className="mt-6 text-sm text-blue-400 hover:underline">
+                    {dict.caseStudy} →
+                  </Link>
+                )}
               </article>
             ))}
           </div>

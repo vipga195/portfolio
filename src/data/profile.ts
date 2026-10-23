@@ -20,6 +20,8 @@ export type ProjectMedia = {
 export type Project = {
   name: string;
   url?: string;
+  // Site path (without locale prefix) of an in-site write-up of this project
+  caseStudy?: string;
   summary: Localized;
   role: Localized;
   teamSize: number;
@@ -134,6 +136,8 @@ export const PROJECTS: Project[] = [
   },
   {
     name: "GO BUSINESS Support",
+    url: "https://support.go-business.jp/",
+    caseStudy: "/projects/go-business-support",
     summary: {
       en: "Customer support site for GO BUSINESS: Contentful-driven static site in a monorepo (5 apps + 1 shared package) for two user groups (admin / employee).",
       ja: "GO BUSINESS のカスタマーサポートサイト。Contentful 連携の静的サイトをモノレポ（5アプリ＋共通パッケージ1）で構築し、管理者／従業員の2種類のユーザーに提供。",
