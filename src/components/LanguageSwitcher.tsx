@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { LOCALES, LOCALE_LABELS, LOCALE_NAMES, localePath, type Locale } from "@/i18n/config";
+import { LOCALES, LOCALE_LABELS, LOCALE_NAMES, localizedPath, stripLocalePrefix, type Locale } from "@/i18n/config";
 
 type LanguageSwitcherProps = {
   lang: Locale;
@@ -12,6 +13,8 @@ type LanguageSwitcherProps = {
 
 export default function LanguageSwitcher({ lang, label }: LanguageSwitcherProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
+  // Switching language keeps the current page (e.g. the Snake page), not just the home page
+  const page = stripLocalePrefix(usePathname());
   const container = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
 
@@ -57,7 +60,7 @@ export default function LanguageSwitcher({ lang, label }: LanguageSwitcherProps)
         {LOCALES.map((locale) => (
           <li key={locale}>
             <Link
-              href={localePath(locale)}
+              href={localizedPath(locale, page)}
               hrefLang={locale}
               lang={locale}
               aria-current={locale === lang ? "true" : undefined}

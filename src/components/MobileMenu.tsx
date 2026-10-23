@@ -2,10 +2,13 @@
 
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
-import { LOCALES, LOCALE_LABELS, LOCALE_NAMES, localePath, type Locale } from "@/i18n/config";
+import { LOCALES, LOCALE_LABELS, LOCALE_NAMES, localizedPath, stripLocalePrefix, type Locale } from "@/i18n/config";
+
+import NavLink from "./NavLink";
 
 type MobileMenuProps = {
   items: { href: string; label: string }[];
@@ -21,6 +24,8 @@ function subscribe(): () => void {
 
 export default function MobileMenu({ items, label, closeLabel, lang, languageLabel }: MobileMenuProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
+  // Switching language keeps the current page (e.g. the Snake page), not just the home page
+  const page = stripLocalePrefix(usePathname());
   const toggle = useRef<HTMLButtonElement>(null);
   const isClient = useSyncExternalStore(
     subscribe,
@@ -76,9 +81,9 @@ export default function MobileMenu({ items, label, closeLabel, lang, languageLab
         <ul className="flex-1 overflow-y-auto">
           {items.map(({ href, label: itemLabel }) => (
             <li key={href}>
-              <a href={href} onClick={close} className="block py-3 text-lg text-neutral-200 hover:text-white">
+              <NavLink hash={href} lang={lang} onClick={close} className="block py-3 text-lg text-neutral-200 hover:text-white">
                 {itemLabel}
-              </a>
+              </NavLink>
             </li>
           ))}
         </ul>
@@ -88,7 +93,7 @@ export default function MobileMenu({ items, label, closeLabel, lang, languageLab
             {LOCALES.map((locale) => (
               <li key={locale}>
                 <Link
-                  href={localePath(locale)}
+                  href={localizedPath(locale, page)}
                   hrefLang={locale}
                   lang={locale}
                   aria-label={LOCALE_NAMES[locale]}
