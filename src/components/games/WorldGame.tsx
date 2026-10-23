@@ -27,12 +27,13 @@ const POLE_LEN=90;
 
 type Pt={ x: number; y: number };
 
+// Physical key codes, so WASD keeps its position on AZERTY and other layouts
 const KEY_BITS: Record<string, number>={
-  a: BIT.LEFT, arrowleft: BIT.LEFT,
-  d: BIT.RIGHT, arrowright: BIT.RIGHT,
-  w: BIT.UP, arrowup: BIT.UP,
-  s: BIT.DOWN, arrowdown: BIT.DOWN,
-  j: BIT.THRUST, k: BIT.SWEEP, l: BIT.CHOP,
+  KeyA: BIT.LEFT, ArrowLeft: BIT.LEFT,
+  KeyD: BIT.RIGHT, ArrowRight: BIT.RIGHT,
+  KeyW: BIT.UP, ArrowUp: BIT.UP,
+  KeyS: BIT.DOWN, ArrowDown: BIT.DOWN,
+  KeyJ: BIT.THRUST, KeyK: BIT.SWEEP, KeyL: BIT.CHOP,
 };
 
 function keyMask(keys: Set<string>): InputMask {
@@ -239,7 +240,6 @@ export default function WorldGame(): React.JSX.Element {
     };
     applyDpr();
     window.addEventListener("resize", applyDpr);
-    canvas.focus({ preventScroll: true });
 
     const mq=window.matchMedia("(prefers-color-scheme: dark)");
     darkRef.current=mq.matches;
@@ -279,22 +279,25 @@ export default function WorldGame(): React.JSX.Element {
   // Keyboard
   useEffect(() => {
     const keys=keysRef.current;
+    const canvas=canvasRef.current;
     const onDown=(e: KeyboardEvent): void => {
+      // macOS sends no keyup for held keys while Cmd is down, so drop them instead of letting them stick
+      if (e.metaKey) keys.clear();
       if (isTypingTarget(e.target)||e.metaKey||e.ctrlKey||e.altKey) return;
-      const k=e.key.toLowerCase();
-      if (KEY_BITS[k]!==undefined) {
-        // Only swallow the key while the canvas has focus, so the page can still scroll otherwise
-        if (document.activeElement===canvasRef.current) e.preventDefault();
-        keys.add(k);
-      }
+      // Only react while the canvas has focus, so the page can still scroll with the arrow keys otherwise
+      if (document.activeElement!==canvas||KEY_BITS[e.code]===undefined) return;
+      e.preventDefault();
+      keys.add(e.code);
     };
     const onUp=(e: KeyboardEvent): void => {
-      keys.delete(e.key.toLowerCase());
+      if (e.code==="MetaLeft"||e.code==="MetaRight") keys.clear();
+      keys.delete(e.code);
     };
     const onBlur=(): void => {
       keys.clear();
       touchRef.current=0;
     };
+    canvas?.addEventListener("blur", onBlur);
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup", onUp);
     window.addEventListener("blur", onBlur);
@@ -302,6 +305,7 @@ export default function WorldGame(): React.JSX.Element {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
       window.removeEventListener("blur", onBlur);
+      canvas?.removeEventListener("blur", onBlur);
     };
   }, []);
 
@@ -312,11 +316,13 @@ export default function WorldGame(): React.JSX.Element {
         width={W}
         height={H}
         tabIndex={0}
-        className="aspect-video outline-none w-full rounded-xl border border-neutral-800"
+        role="application"
+        aria-label="Stick fighter open world. Click to focus, then WASD or arrows move; J, K, L attack."
+        className="aspect-video w-full rounded-xl border border-neutral-800 outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
       />
       <TouchControls onChange={onTouch} moveLabels={{ left: "Left", right: "Right", up: "Up", down: "Down" }} />
       <p className="text-center text-xs text-neutral-400">
-        WASD or arrows move · J thrust · K sweep · L chop
+        Click the game, then WASD or arrows move · J thrust · K sweep · L chop
       </p>
     </div>
   );

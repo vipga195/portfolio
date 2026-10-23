@@ -40,7 +40,7 @@ export default function TouchControls({ onChange, moveLabels }: TouchControlsPro
   }, [onChange]);
 
   useEffect(() => {
-    const mq=window.matchMedia("(pointer: coarse)");
+    const mq=window.matchMedia("(any-pointer: coarse)");
     const sync=(): void => setCoarse(mq.matches);
     sync();
     mq.addEventListener("change", sync);
