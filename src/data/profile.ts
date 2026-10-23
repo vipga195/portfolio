@@ -146,6 +146,15 @@ export const PROJECTS: Project[] = [
     },
     teamSize: 5,
     stack: ["Next.js", "Contentful", "Editor.js", "Docker", "GCP", "GitHub Actions"],
+    media: {
+      type: "image",
+      src: "/projects/go-business-architecture.png",
+      alt: {
+        en: "GO BUSINESS Support system architecture: Contentful, GitHub Actions CI/CD, Firebase Hosting and Cloud Run",
+        ja: "GO BUSINESS Support のシステム構成図：Contentful、GitHub Actions の CI/CD、Firebase Hosting、Cloud Run",
+        vi: "Sơ đồ kiến trúc GO BUSINESS Support: Contentful, CI/CD GitHub Actions, Firebase Hosting và Cloud Run",
+      },
+    },
   },
   {
     name: "Wonderia",
