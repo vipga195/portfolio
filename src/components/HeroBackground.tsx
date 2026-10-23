@@ -68,7 +68,7 @@ export default function HeroBackground(): React.JSX.Element {
     );
 
     const reveal = (): void => {
-      // TEMP preview: force the intro even with reduced motion (restore the matchMedia check)
+      // The intro plays regardless of prefers-reduced-motion (deliberate design choice)
       const reducedMotion = false;
       intro.current.burst = getIntroBurst();
       if (intro.current.burst > 0) {

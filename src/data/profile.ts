@@ -335,9 +335,9 @@ export const KNOWLEDGE_BASE: KnowledgeEntry[] = [
       vi: "GSAP ScrollTrigger trong React / Next.js",
     },
     summary: {
-      en: "Scoping animations with useGSAP, cleanup on unmount and respecting prefers-reduced-motion.",
-      ja: "useGSAP によるアニメーションのスコープ管理、アンマウント時のクリーンアップ、prefers-reduced-motion への対応。",
-      vi: "Giới hạn phạm vi animation với useGSAP, cleanup khi unmount và tôn trọng prefers-reduced-motion.",
+      en: "Scoping animations with useGSAP and cleaning up on unmount.",
+      ja: "useGSAP によるアニメーションのスコープ管理、アンマウント時のクリーンアップ。",
+      vi: "Giới hạn phạm vi animation với useGSAP và cleanup khi unmount.",
     },
     tags: ["GSAP", "Next.js"],
   },

@@ -1,7 +1,7 @@
+import { PROFILE } from "@/data/profile";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 
-import LanguageSwitcher from "./LanguageSwitcher";
 import MobileMenu from "./MobileMenu";
 import NavLink from "./NavLink";
 
@@ -24,31 +24,18 @@ export default function Header({ lang, nav, languageLabel, menuLabel, closeMenuL
   ];
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-neutral-950/70 backdrop-blur">
-      <nav className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
-        <NavLink hash="#" lang={lang} className="font-mono font-bold text-blue-400">
-          huy.dev
-        </NavLink>
-        <div className="flex items-center gap-3 md:gap-6">
-          <ul className="hidden gap-6 text-sm text-neutral-300 md:flex">
-            {navItems.map(({ href, label }) => (
-              <li key={href}>
-                <NavLink hash={href} lang={lang} className="hover:text-white">
-                  {label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-          <LanguageSwitcher lang={lang} label={languageLabel} />
-          <MobileMenu
-            items={navItems}
-            label={menuLabel}
-            closeLabel={closeMenuLabel}
-            lang={lang}
-            languageLabel={languageLabel}
-          />
-        </div>
-      </nav>
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between px-6 mix-blend-difference md:px-10">
+      <NavLink hash="#" lang={lang} className="blink-hover pointer-events-auto font-display text-2xl font-bold text-white">
+        <span aria-hidden>H.</span>
+        <span className="sr-only">{PROFILE.name}</span>
+      </NavLink>
+      <MobileMenu
+        items={navItems}
+        label={menuLabel}
+        closeLabel={closeMenuLabel}
+        lang={lang}
+        languageLabel={languageLabel}
+      />
     </header>
   );
 }

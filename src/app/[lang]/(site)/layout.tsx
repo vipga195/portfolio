@@ -24,8 +24,34 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
       />
       <SmoothScroll>
         {children}
-        <footer className="py-10 text-center text-sm text-neutral-400">
-          © {new Date().getFullYear()} {PROFILE.name}
+        <footer className="border-t border-neutral-800 bg-black px-6 pt-20 pb-8 md:px-10">
+          <p aria-hidden className="font-display text-[clamp(2.5rem,9vw,9rem)] leading-[0.9] font-light tracking-tight text-white uppercase">
+            {PROFILE.name}
+          </p>
+          <div className="mt-12 flex flex-col gap-6 border-t border-neutral-800 pt-6 text-sm text-neutral-400 md:flex-row md:items-center md:justify-between">
+            <ul className="flex flex-wrap gap-6">
+              <li>
+                <a href={`mailto:${PROFILE.email}`} className="blink-hover hover:text-white">
+                  {PROFILE.email}
+                </a>
+              </li>
+              <li>
+                <a href={PROFILE.github} target="_blank" rel="noopener noreferrer" className="blink-hover hover:text-white">
+                  GitHub
+                </a>
+              </li>
+              {PROFILE.linkedin && (
+                <li>
+                  <a href={PROFILE.linkedin} target="_blank" rel="noopener noreferrer" className="blink-hover hover:text-white">
+                    LinkedIn
+                  </a>
+                </li>
+              )}
+            </ul>
+            <p>
+              © {new Date().getFullYear()} {PROFILE.name}
+            </p>
+          </div>
         </footer>
       </SmoothScroll>
       <HeroBackground />

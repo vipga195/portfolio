@@ -94,7 +94,7 @@ export default function ContactForm({ lang, labels }: FormProps): React.JSX.Elem
           type="text"
           required
           maxLength={100}
-          className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-blue-500 outline-none"
+          className="w-full border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-accent outline-none"
           placeholder={labels.name}
         />
       </div>
@@ -109,7 +109,7 @@ export default function ContactForm({ lang, labels }: FormProps): React.JSX.Elem
           type="email"
           required
           maxLength={254}
-          className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-blue-500 outline-none"
+          className="w-full border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-accent outline-none"
           placeholder={labels.email}
         />
       </div>
@@ -124,7 +124,7 @@ export default function ContactForm({ lang, labels }: FormProps): React.JSX.Elem
           type="text"
           maxLength={200}
           autoComplete="organization"
-          className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-blue-500 outline-none"
+          className="w-full border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-accent outline-none"
           placeholder={labels.company}
         />
       </div>
@@ -140,7 +140,7 @@ export default function ContactForm({ lang, labels }: FormProps): React.JSX.Elem
           minLength={10}
           maxLength={5000}
           rows={5}
-          className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-blue-500 outline-none resize-none"
+          className="w-full border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-accent outline-none resize-none"
           placeholder={labels.message}
         />
       </div>
@@ -157,7 +157,7 @@ export default function ContactForm({ lang, labels }: FormProps): React.JSX.Elem
       <button
         type="submit"
         disabled={status === "sending"}
-        className="rounded-full bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        className="bg-accent px-6 py-3 font-medium text-white hover:bg-accent/80 disabled:opacity-50 transition-colors"
       >
         {status === "sending" ? labels.sending : labels.submit}
       </button>

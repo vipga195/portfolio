@@ -176,7 +176,7 @@ export default function HeroScene({ paused = false, intro }: HeroSceneProps): Re
     const el = container.current;
     if (!el) return;
 
-    // TEMP preview: force the intro even with reduced motion (restore the matchMedia check)
+    // The intro plays regardless of prefers-reduced-motion (deliberate design choice)
     const reducedMotion = false;
     const { targets, starts, colors, dotCount } = createParticles();
 
