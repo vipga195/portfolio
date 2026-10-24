@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { isIP } from "node:net";
 
 import { parseEpisodes } from "../ai/algorithm.ts";
+import type { AlgorithmId } from "../ai/algorithm.ts";
 import { SITE_URL } from "../site.ts";
 import { getAlgorithm, getGame } from "../registry.ts";
 import type { JobStore, RunMetric, TrainingRun } from "./jobs.ts";
@@ -24,6 +25,7 @@ const MAX_LIST_LIMIT = 50;
 const MAX_METRICS = 100;
 const RUN_ID = /^[1-9][0-9]{0,15}$/;
 const TOP_LEVEL_KEYS = ["game", "algorithm", "episodes", "params"];
+const REQUIRED_REPRESENTATION: Record<AlgorithmId, "tabular" | "dense"> = { "q-learning": "tabular", dqn: "dense" };
 
 const CACHE_SHORT = "public, max-age=2, s-maxage=2, stale-while-revalidate=5";
 const CACHE_IMMUTABLE = "public, max-age=31536000, immutable";
@@ -191,6 +193,8 @@ export async function createRun(request: Request, deps: ApiDeps): Promise<Respon
     if (!game) return json({ error: "invalid_field", field: "game" }, 400);
     const algorithm = typeof body.algorithm === "string" ? getAlgorithm(body.algorithm) : undefined;
     if (!algorithm) return json({ error: "invalid_field", field: "algorithm" }, 400);
+    // The algorithm trains on one representation of the game; reject a pair that would only fail later in the worker
+    if (!game[REQUIRED_REPRESENTATION[algorithm.id]]) return json({ error: "invalid_field", field: "algorithm" }, 400);
     const episodes = parseEpisodes(algorithm, body.episodes);
     if (episodes === null) return json({ error: "invalid_field", field: "episodes" }, 400);
     const params = algorithm.parseParams(Object.hasOwn(body, "params") ? body.params : {});

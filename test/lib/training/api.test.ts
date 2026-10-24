@@ -51,6 +51,13 @@ describe("feature flag", () => {
 });
 
 describe("POST /api/training/runs", () => {
+  it("accepts a fighter game with dqn and does not queue a mismatched pair", async () => {
+    const deps = makeDeps();
+    assert.equal((await createRun(post({ game: "fighter-combo", algorithm: "dqn", episodes: 100 }), deps)).status, 201);
+    assert.equal((await createRun(post({ game: "fighter-combo", algorithm: "q-learning", episodes: 100 }), deps)).status, 400);
+    assert.equal((await deps.store.listPublicRuns(10)).length, 1);
+  });
+
   it("creates a run (201) and stores validated params and a hashed client key", async () => {
     const deps = makeDeps();
     const response = await createRun(post({ ...good, params: { alpha: 0.2 } }, { "cf-connecting-ip": "1.2.3.4" }), deps);
@@ -79,6 +86,7 @@ describe("POST /api/training/runs", () => {
       [{ ...good, episodes: 1.5 }, 400, "invalid_field", "episodes"],
       [{ ...good, episodes: "100" }, 400, "invalid_field", "episodes"],
       [{ game: "snake", algorithm: "dqn", episodes: 5001 }, 400, "invalid_field", "episodes"],
+      [{ game: "fighter-combo", algorithm: "q-learning", episodes: 100 }, 400, "invalid_field", "algorithm"],
       [{ ...good, params: { evil: 1 } }, 400, "invalid_field", "params"],
       [{ ...good, params: { alpha: 5 } }, 400, "invalid_field", "params"],
       [{ ...good, params: "x" }, 400, "invalid_field", "params"],
