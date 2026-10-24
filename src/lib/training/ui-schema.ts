@@ -41,3 +41,11 @@ export const ALGORITHM_UI: Record<AlgorithmId, AlgorithmUi> = {
 export function isAlgorithmId(value: string): value is AlgorithmId {
   return ALGORITHM_IDS.some((id) => id === value);
 }
+
+export const FIGHTER_ARCHETYPES = ["aggressive", "defensive", "combo", "weapon"] as const;
+
+export type FighterArchetype = (typeof FIGHTER_ARCHETYPES)[number];
+
+export function fighterGameId(a: FighterArchetype): string {
+  return `fighter-${a}`;
+}

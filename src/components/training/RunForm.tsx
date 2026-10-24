@@ -9,8 +9,8 @@ import { createRun } from "@/lib/training/lab-client";
 import type { FetchFn } from "@/lib/training/lab-client";
 import { validateForm } from "@/lib/training/lab-model";
 import type { ApiErrorInfo, FieldError } from "@/lib/training/lab-model";
-import { ALGORITHM_IDS, GAME_ID, isAlgorithmId } from "@/lib/training/ui-schema";
-import type { AlgorithmId, AlgorithmUi } from "@/lib/training/ui-schema";
+import { ALGORITHM_IDS, FIGHTER_ARCHETYPES, GAME_ID, fighterGameId, isAlgorithmId } from "@/lib/training/ui-schema";
+import type { AlgorithmId, AlgorithmUi, FighterArchetype } from "@/lib/training/ui-schema";
 
 type Props = {
   text: TrainingLabText;
@@ -38,11 +38,15 @@ export default function RunForm({ text, ui, fetchFn, onCreated }: Props): React.
   const [submitting, setSubmitting] = useState(false);
   const inputs = useRef<Record<string, HTMLInputElement | null>>({});
   const current = ui[algorithm];
+  const [game, setGame] = useState<"snake" | "fighter">("snake");
+  const [archetypes, setArchetypes] = useState<FighterArchetype[]>(["aggressive"]);
+  const [archetypeError, setArchetypeError] = useState<string | null>(null);
 
   // Editing anything makes an old server error and a stale notice irrelevant
   const touched = (): void => {
     setApiError(null);
     setNotice(null);
+    setArchetypeError(null);
   };
 
   const changeAlgorithm = (value: string): void => {
@@ -51,6 +55,17 @@ export default function RunForm({ text, ui, fetchFn, onCreated }: Props): React.
     setValues(defaultsFor(ui[value]));
     setErrors({});
     touched();
+  };
+
+  const changeGame = (value: string): void => {
+    if (value !== "snake" && value !== "fighter") return;
+    setGame(value);
+    if (value === "fighter") changeAlgorithm("dqn");
+    else changeAlgorithm("q-learning");
+  };
+
+  const toggleArchetype = (archetype: FighterArchetype): void => {
+    edit(() => setArchetypes((prev) => (prev.includes(archetype) ? prev.filter((a) => a !== archetype) : [...prev, archetype])));
   };
 
   const submit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -68,14 +83,40 @@ export default function RunForm({ text, ui, fetchFn, onCreated }: Props): React.
     }
     setErrors({});
     setSubmitting(true);
-    const response = await createRun(fetchFn, { game: GAME_ID, algorithm, episodes: result.episodes, params: result.params });
-    setSubmitting(false);
-    if (response.ok) {
-      setNotice(response.data.id === null ? text.form.createdUnknown : text.form.queued(response.data.id));
-      onCreated(response.data.id);
-    } else if (response.kind !== "aborted") {
-      setApiError(response);
+    if (game === "snake") {
+      const response = await createRun(fetchFn, { game: GAME_ID, algorithm, episodes: result.episodes, params: result.params });
+      setSubmitting(false);
+      if (response.ok) {
+        setNotice(response.data.id === null ? text.form.createdUnknown : text.form.queued(response.data.id));
+        onCreated(response.data.id);
+      } else if (response.kind !== "aborted") {
+        setApiError(response);
+      }
+      return;
     }
+    if (archetypes.length === 0) {
+      setArchetypeError(text.form.archetypeNone);
+      setSubmitting(false);
+      return;
+    }
+    const queued: string[] = [];
+    let lastId: number | null = null;
+    let failure: ApiErrorInfo | null = null;
+    for (const archetype of FIGHTER_ARCHETYPES.filter((a) => archetypes.includes(a))) {
+      const response = await createRun(fetchFn, { game: fighterGameId(archetype), algorithm, episodes: result.episodes, params: result.params });
+      if (!response.ok) {
+        if (response.kind !== "aborted") failure = response;
+        break;
+      }
+      lastId = response.data.id;
+      queued.push(response.data.id === null ? text.form.createdUnknown : text.form.queued(response.data.id));
+    }
+    setSubmitting(false);
+    if (queued.length > 0) {
+      setNotice(queued.join(" "));
+      onCreated(lastId);
+    }
+    if (failure) setApiError(failure);
   };
 
   const fieldError = (key: string): string | null => {
@@ -83,6 +124,7 @@ export default function RunForm({ text, ui, fetchFn, onCreated }: Props): React.
     if (!error) return null;
     return error.code === "out_of_range" ? text.fieldErrors.out_of_range(error.min, error.max) : text.fieldErrors[error.code];
   };
+
   const edit = (update: () => void): void => {
     update();
     touched();
@@ -94,14 +136,37 @@ export default function RunForm({ text, ui, fetchFn, onCreated }: Props): React.
       <h2 className="text-xl font-semibold text-neutral-100">{text.form.title}</h2>
 
       <div>
-        <label htmlFor={`${id}-alg`} className="mb-2 block text-sm font-medium text-neutral-200">{text.form.algorithm}</label>
-        <select id={`${id}-alg`} value={algorithm} onChange={(e) => changeAlgorithm(e.target.value)} className={INPUT} disabled={submitting}>
-          {ALGORITHM_IDS.map((key) => (
-            <option key={key} value={key}>{text.algorithms[key].name}</option>
-          ))}
+        <label htmlFor={`${id}-game`} className="mb-2 block text-sm font-medium text-neutral-200">{text.form.game}</label>
+        <select id={`${id}-game`} value={game} onChange={(e) => changeGame(e.target.value)} className={INPUT} disabled={submitting}>
+          <option value="snake">{text.form.gameSnake}</option>
+          <option value="fighter">{text.form.gameFighter}</option>
         </select>
-        <p className="mt-2 text-sm text-neutral-400">{text.algorithms[algorithm].description}</p>
       </div>
+
+      {game === "snake" && (
+        <div>
+          <label htmlFor={`${id}-alg`} className="mb-2 block text-sm font-medium text-neutral-200">{text.form.algorithm}</label>
+          <select id={`${id}-alg`} value={algorithm} onChange={(e) => changeAlgorithm(e.target.value)} className={INPUT} disabled={submitting}>
+            {ALGORITHM_IDS.map((key) => (
+              <option key={key} value={key}>{text.algorithms[key].name}</option>
+            ))}
+          </select>
+          <p className="mt-2 text-sm text-neutral-400">{text.algorithms[algorithm].description}</p>
+        </div>
+      )}
+
+      {game === "fighter" && (
+        <fieldset className="space-y-2" disabled={submitting}>
+          <legend className="mb-2 text-sm font-medium text-neutral-200">{text.form.archetypes}</legend>
+          {FIGHTER_ARCHETYPES.map((archetype) => (
+            <label key={archetype} className="flex min-h-11 items-center gap-3 text-sm text-neutral-200">
+              <input type="checkbox" checked={archetypes.includes(archetype)} onChange={() => toggleArchetype(archetype)} className={`h-5 w-5 accent-blue-500 ${FOCUS}`} />
+              {text.form.archetypeNames[archetype]}
+            </label>
+          ))}
+          <p className="text-sm text-neutral-400">{text.form.archetypesHint}</p>
+        </fieldset>
+      )}
 
       <div>
         <label htmlFor={`${id}-ep`} className="mb-2 block text-sm font-medium text-neutral-200">{text.form.episodes}</label>
@@ -146,6 +211,7 @@ export default function RunForm({ text, ui, fetchFn, onCreated }: Props): React.
 
       <div className="min-h-6 text-sm">
         <p role="alert" className="text-red-400">
+          {archetypeError && <>{archetypeError}</>}
           {apiError && (
             <>
               {text.errors[apiError.kind]}

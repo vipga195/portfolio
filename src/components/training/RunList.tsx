@@ -41,7 +41,7 @@ export default function RunList({ runs, selectedId, onSelect, text, lang }: Prop
         return (
           <li key={run.id} className={`rounded-xl border p-4 ${selected ? "border-blue-500" : "border-neutral-800"}`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-medium text-neutral-100">#{run.id} · {algorithmName}</span>
+              <span className="font-medium text-neutral-100">#{run.id}{run.game !== "snake" && ` · ${run.game}`} · {algorithmName}</span>
               <span className={`rounded-full border px-2 py-0.5 text-xs ${BADGE[run.status]}`}>{text.status[run.status]}</span>
             </div>
             <p className="mt-1 text-xs text-neutral-400">{formatCreated(run.createdAt, lang)}</p>

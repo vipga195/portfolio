@@ -1,6 +1,6 @@
 import { humanizeDuration } from "../lib/training/lab-model.ts";
 import type { ErrorKind, RunStatus } from "../lib/training/lab-model";
-import type { AlgorithmId } from "../lib/training/ui-schema";
+import type { AlgorithmId, FighterArchetype } from "../lib/training/ui-schema";
 import type { Localized } from "./config";
 
 export type ContactFormLabels = {
@@ -34,6 +34,13 @@ export type TrainingLabText = {
     submitting: string;
     queued: (id: number) => string;
     createdUnknown: string;
+    game: string;
+    gameSnake: string;
+    gameFighter: string;
+    archetypes: string;
+    archetypesHint: string;
+    archetypeNone: string;
+    archetypeNames: Record<FighterArchetype, string>;
   };
   algorithms: Record<AlgorithmId, { name: string; description: string }>;
   params: Record<ParamKey, { label: string; help: string }>;
@@ -153,6 +160,18 @@ export const DICTIONARIES: Localized<Dictionary> = {
         submitting: "Sending...",
         queued: (id) => `Run #${id} queued.`,
         createdUnknown: "Run created. Refreshing the list...",
+        game: "Game",
+        gameSnake: "Snake",
+        gameFighter: "Stick fighter",
+        archetypes: "Fighting styles to train",
+        archetypesHint: "One run is queued per ticked style; each one uses a daily quota slot.",
+        archetypeNone: "Tick at least one style.",
+        archetypeNames: {
+          aggressive: "Aggressive",
+          defensive: "Defensive",
+          combo: "Combo",
+          weapon: "Weapon",
+        },
       },
       algorithms: {
         "q-learning": { name: "Q-learning", description: "A table of values for 2,048 hand-made situations. Fast to train, easy to understand." },
@@ -284,6 +303,18 @@ export const DICTIONARIES: Localized<Dictionary> = {
         submitting: "送信中...",
         queued: (id) => `実行 #${id} を受け付けました。`,
         createdUnknown: "実行を作成しました。一覧を更新しています...",
+        game: "ゲーム",
+        gameSnake: "スネーク",
+        gameFighter: "スティックファイター",
+        archetypes: "学習させる戦闘スタイル",
+        archetypesHint: "選んだスタイルごとに1回ぶん実行が登録されます。それぞれ1日の枠を1つ使います。",
+        archetypeNone: "戦闘スタイルを1つ以上選んでください。",
+        archetypeNames: {
+          aggressive: "攻撃型",
+          defensive: "防御型",
+          combo: "コンボ型",
+          weapon: "武器型",
+        },
       },
       algorithms: {
         "q-learning": { name: "Q-learning", description: "手作りの 2,048 通りの状況ごとに価値を記録する表。学習が速く、仕組みも分かりやすい方式です。" },
@@ -414,6 +445,18 @@ export const DICTIONARIES: Localized<Dictionary> = {
         submitting: "Đang gửi...",
         queued: (id) => `Đã xếp hàng lượt chạy #${id}.`,
         createdUnknown: "Đã tạo lượt chạy. Đang làm mới danh sách...",
+        game: "Trò chơi",
+        gameSnake: "Rắn",
+        gameFighter: "Người que chiến đấu",
+        archetypes: "Phong cách chiến đấu cần huấn luyện",
+        archetypesHint: "Mỗi phong cách được đánh dấu sẽ xếp một lượt chạy; mỗi lượt dùng một suất hạn mức hằng ngày.",
+        archetypeNone: "Hãy chọn ít nhất một phong cách.",
+        archetypeNames: {
+          aggressive: "Tấn công",
+          defensive: "Phòng thủ",
+          combo: "Kết hợp",
+          weapon: "Vũ khí",
+        },
       },
       algorithms: {
         "q-learning": { name: "Q-learning", description: "Một bảng giá trị cho 2.048 tình huống tự định nghĩa. Huấn luyện nhanh, dễ hiểu." },

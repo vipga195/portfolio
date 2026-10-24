@@ -3,7 +3,9 @@ import { describe, it } from "node:test";
 
 import { dqnAlgorithm } from "../../../src/lib/ai/algorithms/dqn.ts";
 import { qLearningAlgorithm } from "../../../src/lib/ai/algorithms/q-learning.ts";
-import { ALGORITHM_UI } from "../../../src/lib/training/ui-schema.ts";
+import { ARCHETYPES } from "../../../src/lib/game/fighter/world/archetypes.ts";
+import { getGame } from "../../../src/lib/registry.ts";
+import { ALGORITHM_UI, FIGHTER_ARCHETYPES, fighterGameId } from "../../../src/lib/training/ui-schema.ts";
 
 const algorithms = { "q-learning": qLearningAlgorithm, dqn: dqnAlgorithm } as const;
 
@@ -39,6 +41,18 @@ describe("ALGORITHM_UI matches the algorithms", () => {
       it("all defaults together are accepted", () => {
         assert.notEqual(algorithm.parseParams(Object.fromEntries(ui.fields.map((f) => [f.key, f.default]))), null);
       });
+    });
+  }
+});
+
+describe("FIGHTER_ARCHETYPES", () => {
+  it("matches the fighter ARCHETYPES", () => {
+    assert.deepEqual([...FIGHTER_ARCHETYPES], [...ARCHETYPES]);
+  });
+
+  for (const archetype of FIGHTER_ARCHETYPES) {
+    it(`registers a game for ${archetype}`, () => {
+      assert.ok(getGame(fighterGameId(archetype)));
     });
   }
 });
