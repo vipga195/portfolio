@@ -97,10 +97,12 @@ export default function SnakeGame(): React.JSX.Element {
   const [state, setState]=useState<GameState>(createInitialState);
   const [running, setRunning]=useState(false);
   const [aiOn, setAiOn]=useState(false);
+  const [shareOn, setShareOn]=useState(false);   // opt-in: games are only sent to the server when ticked
   const [brainStatus, setBrainStatus]=useState<"idle"|"loading"|"ready"|"error">("idle");
 
   const brainRef=useRef<QTable|null>(null);
   const aiOnRef=useRef(false);
+  const shareOnRef=useRef(false);
   const sinceFoodRef=useRef(0);
 
   // Learning session of the current game: token + the direction requested on every tick
@@ -150,7 +152,7 @@ export default function SnakeGame(): React.JSX.Element {
     // A new game with AI off asks for a learning session; a failure just means no recording
     if (!sessionTriedRef.current) {
       sessionTriedRef.current=true;
-      if (!aiOnRef.current) {
+      if (!aiOnRef.current&&shareOnRef.current) {
         const gen=gameGenRef.current;
         const gridSize=(fresh??currRef.current).gridSize;
         startingRef.current=true;
@@ -160,7 +162,7 @@ export default function SnakeGame(): React.JSX.Element {
         setStarting(false);
         if (gen!==gameGenRef.current) return;   // grid changed meanwhile: this reply is stale
         if (aiOnRef.current&&!brainRef.current) return;   // AI was switched on while waiting and its brain is not loaded
-        if (session) {
+        if (session&&shareOnRef.current) {   // unticked while the request was in flight: drop the session
           fresh=createInitialState(gridSize, session.seed);
           tokenRef.current=session.token;
           movesRef.current=[];
@@ -183,6 +185,11 @@ export default function SnakeGame(): React.JSX.Element {
     // Never start a game with AI on before its brain is loaded
     setRunning((r) => (r? false:!aiOnRef.current||brainRef.current!==null));
   }, []);
+
+  useEffect(() => {
+    shareOnRef.current=shareOn;
+    if (!shareOn) tokenRef.current=null;   // unticked mid-game: drop the recording, nothing is submitted
+  }, [shareOn]);
 
   useEffect(() => {
     aiOnRef.current=aiOn;
@@ -295,6 +302,10 @@ export default function SnakeGame(): React.JSX.Element {
               disabled={playing}
               onChange={(e) => changeGrid(Number(e.target.value))}
             />
+          </label>
+          <label className="mt-3 flex items-center gap-3 text-sm text-neutral-300">
+            <input type="checkbox" checked={shareOn} onChange={(e) => setShareOn(e.target.checked)} />
+            Share my games to help the AI learn (applies from the next game)
           </label>
         </div>
         <div>
