@@ -82,10 +82,10 @@ function castMasks(id: string, dir: number): number[] {
   };
   const toward=bits(dir);
   switch (id) {
-    case "fireball": return [WBIT.CROUCH, 0, toward|WBIT.ATK_A];
-    case "wave": return [WBIT.CROUCH, 0, toward|WBIT.ATK_B];
+    case "fireball": return [0, WBIT.CROUCH, 0, toward|WBIT.ATK_A];
+    case "wave": return [0, WBIT.CROUCH, 0, toward|WBIT.ATK_B];
     case "blink": return [bits((dir+8)%16), toward|WBIT.ATK_C];
-    case "burst": return [WBIT.CROUCH, 0, WBIT.CROUCH|WBIT.ATK_C];
+    case "burst": return [0, WBIT.CROUCH, 0, WBIT.CROUCH|WBIT.ATK_C];
     default: return [];
   }
 }
@@ -127,13 +127,13 @@ function joint(a: Pt, b: Pt, half: number, bx: number, by: number): Pt {
   return { x: (a.x+b.x)/2+(-dy/d)*off*sign, y: (a.y+b.y)/2+(dx/d)*off*sign };
 }
 
-type MoveKind="punch"|"kick"|"heavy"|"low"|"upper"|"spin"|"dash"|"thrust"|"sweep"|"chop"|"toss";
+type MoveKind="punch"|"kick"|"heavy"|"low"|"upper"|"spin"|"dash"|"thrust"|"sweep"|"chop"|"toss"|"cast"|"slash"|"lunge"|"burst";
 
 const MOVE_KIND: Record<WorldMoveId, MoveKind>={
   punch: "punch", kick: "kick", heavy: "heavy", lowKick: "low", uppercut: "upper", spin: "spin", dash: "dash",
   wThrust: "thrust", wSweep: "sweep", wChop: "chop", sThrust: "thrust", sSweep: "sweep", sChop: "chop",
   wToss: "toss",
-  blink: "dash", burst: "spin", fireball: "punch", wave: "heavy", // placeholder poses until the skill animations land
+  blink: "lunge", burst: "burst", fireball: "cast", wave: "slash",
 };
 
 // How far the striking limb is extended, 0 (rest) to 1 (full): winds up through startup, peaks in active, retracts in recovery
@@ -264,14 +264,14 @@ function drawActor(ctx: CanvasRenderingContext2D, a: Actor, sx: number, sy: numb
   const kind=a.state==="attack"&&a.move!==null? MOVE_KIND[a.move]:null;
   const e=attackExt(a);
   const w=windup(a);
-  const ducking=a.state==="crouch"||kind==="low"||kind==="upper"||a.state==="pickup";
+  const ducking=a.state==="crouch"||kind==="low"||kind==="upper"||kind==="cast"||(kind==="burst"&&w>0)||a.state==="pickup";
   const running=a.state==="run";
 
   // Torso: crouching lowers the hips and neck, running and dashing lean forward, a hit leans back
   const hipY=ducking? -HIP_H*0.6:-HIP_H;
   const neckY=ducking? -NECK_H*0.7:-NECK_H;
   let lean=a.state==="hitstun"? -8:running? 7:kind==="dash"? 10*e:kind==="kick"||kind==="heavy"? -6*e:0;
-  lean+=(kind==="punch"||kind==="upper"? 6*e:kind==="thrust"||kind==="chop"? 9*e:kind==="sweep"? 5*e:0)-5*w;
+  lean+=(kind==="punch"||kind==="upper"? 6*e:kind==="thrust"||kind==="chop"? 9*e:kind==="sweep"? 5*e:kind==="cast"? 5*e:kind==="slash"? 6*e:kind==="lunge"? 12*e:0)-5*w;
   if (a.state==="pickup") lean=10*Math.sin(Math.min(1, a.frame/8)*Math.PI);
   const hip: Pt={ x: 0, y: hipY };
   const neck: Pt={ x: lean*fx, y: neckY+lean*fy*0.5 };
@@ -307,6 +307,28 @@ function drawActor(ctx: CanvasRenderingContext2D, a: Actor, sx: number, sy: numb
     footA={ x: fx*(8+34*e), y: fy*17*e+(hipY+16)*e };
     handA={ x: shoulder.x-fx*8, y: shoulder.y+6 };
     handB={ x: shoulder.x-fx*12, y: shoulder.y+9 };
+  } else if (kind==="cast") {
+    // Both palms are drawn back to the hip while charging, then thrust forward together
+    handA={ x: shoulder.x+fx*(6+26*e-12*w), y: shoulder.y+9-3*e-4*w };
+    handB={ x: shoulder.x+fx*(4+24*e-12*w), y: shoulder.y+11-3*e-4*w };
+  } else if (kind==="slash") {
+    // The blade arm rises behind the head while winding up, then cuts down and across the body
+    handA={ x: shoulder.x+fx*(-8*w+30*e), y: shoulder.y-24*w+(w>0? 0:14*e-6) };
+    handB={ x: shoulder.x-fx*4, y: shoulder.y+8 };
+    footA=reach(stance+8*e);
+    footB=reach(-(stance+10*e));
+  } else if (kind==="lunge") {
+    // Deep forward lunge with the sword arm fully extended and the rear arm thrown back
+    footA={ x: fx*(10+30*e), y: fy*12*e };
+    footB={ x: -fx*(10+22*e), y: -fy*6*e };
+    handA={ x: shoulder.x+fx*(8+36*e-12*w), y: shoulder.y+8-4*e };
+    handB={ x: shoulder.x-fx*(8+10*e), y: shoulder.y+6 };
+  } else if (kind==="burst") {
+    // Crouched and coiled while charging, then both arms are flung wide as the shockwave leaves
+    handA={ x: shoulder.x-(6+22*e), y: shoulder.y+10-(w>0? 0:26*e) };
+    handB={ x: shoulder.x+(6+22*e), y: shoulder.y+10-(w>0? 0:26*e) };
+    footA={ x: fx*(5+7*e), y: 3 };
+    footB={ x: -fx*(5+7*e), y: -3 };
   } else if (kind==="spin") {
     // The kicking leg and the lead hand orbit the body through one full circle over the move
     const m=WORLD_MOVES.spin;
@@ -479,7 +501,7 @@ function drawProjectile(ctx: CanvasRenderingContext2D, p: Projectile, alpha: num
   const uy=DIR_SIN[p.dir]/256;
   const x=p.x/SUB+ux*def.speedPx*alpha;
   const y=p.y/SUB+uy*def.speedPx*alpha;
-  const lift=HIP_H;
+  const lift=p.move==="wave"? HIP_H*1.35:HIP_H; // the wave travels at chest height so it reads above the feet
   const at=(wx: number, wy: number): Pt => {
     const q=scr(wx, wy);
     return { x: q.x, y: q.y-lift };
@@ -503,14 +525,20 @@ function drawProjectile(ctx: CanvasRenderingContext2D, p: Projectile, alpha: num
   } else {
     const a=at(x-uy*def.radiusPx*1.6, y+ux*def.radiusPx*1.6);
     const b=at(x+uy*def.radiusPx*1.6, y-ux*def.radiusPx*1.6);
-    const c=at(x+ux*16, y+uy*16);
-    ctx.globalAlpha=1-0.6*(p.age/def.life);
-    ctx.strokeStyle="#38bdf8";
-    ctx.lineWidth=5;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.quadraticCurveTo(c.x*2-(a.x+b.x)/2, c.y*2-(a.y+b.y)/2, b.x, b.y);
-    ctx.stroke();
+    const c=at(x+ux*22, y+uy*22);
+    const fade=1-0.6*(p.age/def.life);
+    const crescent=(width: number, color: string, alpha: number): void => {
+      ctx.globalAlpha=fade*alpha;
+      ctx.strokeStyle=color;
+      ctx.lineWidth=width;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.quadraticCurveTo(c.x*2-(a.x+b.x)/2, c.y*2-(a.y+b.y)/2, b.x, b.y);
+      ctx.stroke();
+    };
+    crescent(16, "#38bdf8", 0.25);
+    crescent(9, "#38bdf8", 0.8);
+    crescent(3, "#e0f2fe", 1);
   }
   ctx.restore();
 }
@@ -593,6 +621,7 @@ export default function WorldGame(): React.JSX.Element {
   const keysRef=useRef<Set<string>>(new Set());
   const touchRef=useRef<InputMask>(0);
   const castQueueRef=useRef<number[]>([]);
+  const castPendingRef=useRef<string|null>(null); // tapped skill, turned into frames once the player can act
   const darkRef=useRef(false);
   const pausedRef=useRef(false);
   const brainRef=useRef<FighterBrain|null>(null);
@@ -607,7 +636,7 @@ export default function WorldGame(): React.JSX.Element {
   }, []);
 
   const onCast=useCallback((id: string): void => {
-    castQueueRef.current=castMasks(id, worldRef.current.player.dir);
+    castPendingRef.current=id;
   }, []);
 
   // Game loop: fixed 60 Hz steps inside requestAnimationFrame
@@ -663,7 +692,23 @@ export default function WorldGame(): React.JSX.Element {
           npcRef.current=npc;
           mask=m;
         }
-        worldRef.current=stepWorld(world, [keyMask(keysRef.current)|touchRef.current|(castQueueRef.current.shift() ?? 0), mask]);
+        // A cast frame replaces held input: a held direction or Run would hide the heading change the command needs
+        // Cast frames wait while the player is busy (attack, roll, pickup) and are dropped when knocked down
+        const { state: playerState }=world.player;
+        if (playerState==="hitstun"||playerState==="dead") {
+          castQueueRef.current=[];
+          castPendingRef.current=null;
+        }
+        const busy=playerState==="attack"||playerState==="roll"||playerState==="pickup";
+        if (!busy&&castQueueRef.current.length===0&&castPendingRef.current!==null) {
+          castQueueRef.current=castMasks(castPendingRef.current, world.player.dir);
+          castPendingRef.current=null;
+        }
+        const cast=busy? undefined:castQueueRef.current.shift();
+        // Only brain-driven soldiers cast skills; the scripted NPC keeps its old behavior
+        const casting=brain!==null;
+        const stepFrom=world.general.skills===casting? world:{ ...world, general: { ...world.general, skills: casting } };
+        worldRef.current=stepWorld(stepFrom, [cast ?? (keyMask(keysRef.current)|touchRef.current), mask]);
         acc-=STEP_MS;
       }
       // Ease the limb swing in and out so it does not snap when movement starts or stops
@@ -739,6 +784,7 @@ export default function WorldGame(): React.JSX.Element {
       keys.clear();
       touchRef.current=0;
       castQueueRef.current=[];
+      castPendingRef.current=null;
       setPause(true);
     };
     const onFocus=(): void => setPause(false);

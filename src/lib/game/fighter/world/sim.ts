@@ -141,12 +141,12 @@ function cloneActor(a: Actor): Actor {
 }
 
 // Command skills are off by default: training and NPC actors must keep their exact old behavior.
-export function createWorld(seed: number, options: { playerSkills?: boolean } = {}): WorldState {
+export function createWorld(seed: number, options: { playerSkills?: boolean; generalSkills?: boolean } = {}): WorldState {
   return {
     tick: 0,
     rng: seed >>> 0,
     player: makeActor(START_PLAYER, options.playerSkills === true),
-    general: makeActor(START_GENERAL, false),
+    general: makeActor(START_GENERAL, options.generalSkills === true),
     items: START_ITEMS.map((i) => ({ ...i, durability: WEAPON_DURABILITY[i.kind] })),
     projectiles: [],
   };
@@ -277,11 +277,12 @@ function chooseMove(a: Actor, mask: InputMask, heading: number, allowSkill: bool
   }
   const crouching = has(mask, WBIT.CROUCH);
   if (atkB && atkC) return 'spin';
+  // A completed skill command wins over the plain moves that share its button (dash, low kick, uppercut)
+  const skill = allowSkill ? readySkill(a, mask, heading) : -1;
+  if (skill >= 0) return SKILL_DEFS[skill].move;
   if (atkB && a.dashArmed > 0) return 'dash';
   if (crouching && atkB) return 'lowKick';
   if (crouching && atkA) return 'uppercut';
-  const skill = allowSkill ? readySkill(a, mask, heading) : -1;
-  if (skill >= 0) return SKILL_DEFS[skill].move;
   return atkA ? 'punch' : atkB ? 'kick' : atkC ? 'heavy' : null;
 }
 

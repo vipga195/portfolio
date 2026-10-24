@@ -6,7 +6,7 @@ import type { WorldState } from './sim.ts';
 import { WBIT } from './winputs.ts';
 
 // Bump whenever an action index changes meaning: brains trained with another layout are rejected.
-export const ACTIONS_VERSION = 1;
+export const ACTIONS_VERSION = 3;
 
 // The agent decides every DECISION_FRAMES sim frames (10 decisions per second at 60 FPS). A simple macro holds its
 // mask for the whole interval; attack macros press for one frame and release, because the sim only starts an attack
@@ -29,6 +29,12 @@ export const ACTION_NAMES = [
   'dashKick', // double-tap toward the target, then B
   'lowKick', // crouch + B
   'pickup', // drop the held weapon, else fetch the nearest one and grab it in range
+  'roll', // crouch + run away from the target: untouchable for the first frames of the roll
+  'weaponToss', // A + B while armed: throw the held weapon at the target
+  'fireball', // crouch, release, toward + A
+  'slashWave', // crouch, release, toward + B
+  'blink', // away, then toward + C
+  'burst', // crouch, release, crouch + C
 ] as const;
 export const ACTION_COUNT = ACTION_NAMES.length;
 
@@ -61,6 +67,15 @@ const DIRECTION_BITS = WBIT.LEFT | WBIT.RIGHT | WBIT.UP | WBIT.DOWN;
 function press(mask: InputMask, length: number = DECISION_FRAMES): InputMask[] {
   const frames = new Array<InputMask>(length).fill(mask & DIRECTION_BITS);
   frames[0] = mask;
+  return frames;
+}
+
+// A skill command played frame by frame, then `rest` is held for the remainder of the interval.
+function skillFrames(command: InputMask[], rest: InputMask): InputMask[] {
+  const frames = new Array<InputMask>(DECISION_FRAMES).fill(rest);
+  command.forEach((m, i) => {
+    frames[i] = m;
+  });
   return frames;
 }
 
@@ -120,6 +135,18 @@ export function actionFrames(action: number, world: WorldState, side: Side): Inp
       if (best.d2 <= GRAB_RANGE * GRAB_RANGE) return press(WBIT.PICKUP);
       return held(headingMask(best.dx, best.dy));
     }
+    case 15:
+      return held(headingMask(-dx, -dy) | WBIT.CROUCH | WBIT.RUN);
+    case 16:
+      return me.weapon === null ? held(0) : press(toward | WBIT.ATK_A | WBIT.ATK_B);
+    case 17:
+      return skillFrames([WBIT.CROUCH, 0, toward | WBIT.ATK_A], toward);
+    case 18:
+      return skillFrames([WBIT.CROUCH, 0, toward | WBIT.ATK_B], toward);
+    case 19:
+      return skillFrames([headingMask(-dx, -dy), toward | WBIT.ATK_C], toward);
+    case 20:
+      return skillFrames([WBIT.CROUCH, 0, WBIT.CROUCH | WBIT.ATK_C], 0);
     default:
       return held(0);
   }

@@ -20,7 +20,7 @@ export const MAX_EPISODE_TICKS = 1200;
 const START_JITTER_PX = 150;
 const REACH_PX = WORLD_MOVES.kick.reachPx + BODY_HALF_WIDTH;
 const DISTANCE_SCALE_PX = 400;
-const SPECIAL_MOVES: readonly string[] = ['uppercut', 'spin', 'dash'];
+const SPECIAL_MOVES: readonly string[] = ['uppercut', 'spin', 'dash', 'blink', 'burst', 'fireball', 'wave'];
 
 // The opponent always sits on the `player` side and answers with one input mask per sim frame. It may keep state in
 // a closure; a fresh one is created per episode from a seed.
@@ -62,7 +62,7 @@ export type TrainState = {
 
 // Randomised start: both fighters shifted and turned, so the learner meets many spacings and facings.
 export function createTrainWorld(rng: () => number): WorldState {
-  const world = createWorld(Math.floor(rng() * 4294967296));
+  const world = createWorld(Math.floor(rng() * 4294967296), { playerSkills: true, generalSkills: true });
   const place = (a: Actor): Actor => ({
     ...a,
     x: clampPx(a.x / SUB + (rng() * 2 - 1) * START_JITTER_PX, WORLD_WIDTH) * SUB,

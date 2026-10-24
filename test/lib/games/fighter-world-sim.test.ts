@@ -818,6 +818,16 @@ describe('projectile skills', () => {
     assert.equal(w.player.cd[3], 90);
   });
 
+  test('a wave still comes out when the toward tap also armed a dash', () => {
+    const s = feed(skilled(1500), [R, 0, R, CR, 0, R | B]);
+    assert.equal(s.player.move, 'wave');
+  });
+
+  test('a fireball or wave comes out while crouch is still held at the button', () => {
+    assert.equal(feed(skilled(1500), [CR, CR, CR | R, CR | R | A]).player.move, 'fireball');
+    assert.equal(feed(skilled(1500), [CR, CR, CR | R, CR | R | B]).player.move, 'wave');
+  });
+
   test('the projectile spawns on the first active frame and flies forward', () => {
     let s = feed(skilled(1500), FIREBALL_CMD);
     assert.equal(s.projectiles.length, 0);

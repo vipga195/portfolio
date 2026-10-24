@@ -2,18 +2,20 @@ import { BODY_HALF_WIDTH, MAX_HP, SUB } from '../frame-data.ts';
 import { DIR_COS, DIR_SIN } from './dirs.ts';
 import { WEAPON_DURABILITY, WORLD_MOVES } from './moves.ts';
 import type { WeaponKind, WorldMoveId } from './moves.ts';
+import { MAX_STAMINA, SKILL_DEFS } from './skills.ts';
 import { MAX_CHAIN, TAP_WINDOW, WORLD_HEIGHT, WORLD_WIDTH } from './sim.ts';
 import type { Actor, ActorStateName, WorldState } from './sim.ts';
 
 export type Side = 'player' | 'general';
 
 // Bump whenever the layout or meaning of any feature changes: brains trained with another version are rejected.
-export const FEATURES_VERSION = 1;
+export const FEATURES_VERSION = 2;
 
-const STATES: readonly ActorStateName[] = ['idle', 'walk', 'run', 'crouch', 'attack', 'pickup', 'hitstun', 'dead'];
+const STATES: readonly ActorStateName[] = ['idle', 'walk', 'run', 'crouch', 'attack', 'pickup', 'hitstun', 'dead', 'roll'];
 const MOVES: readonly WorldMoveId[] = [
   'punch', 'kick', 'heavy', 'lowKick', 'uppercut', 'spin', 'dash',
   'wThrust', 'wSweep', 'wChop', 'sThrust', 'sSweep', 'sChop',
+  'wToss', 'blink', 'burst', 'fireball', 'wave',
 ];
 const WEAPONS: readonly WeaponKind[] = ['spear', 'staff'];
 
@@ -22,9 +24,10 @@ const REACH_PX = WORLD_MOVES.kick.reachPx + BODY_HALF_WIDTH; // distance scale f
 const STUN_SCALE = 30; // frames; hitstun values are at most 24
 
 // 3 offsets + 2 own facing + 2 opp facing + 2 relative angle + 2 hp
-// + 16 states + 2*(progress + 3 phases + stun left) + 13 opp move + chain block 5 + 2 invuln
+// + 18 states + 2*(progress + 3 phases + stun left) + 18 opp move + chain block 5 + 2 invuln
 // + 2*(2 kinds + durability) + 4 ground weapon + 4 walls
-export const FEATURE_COUNT = 3 + 2 + 2 + 2 + 2 + 16 + 10 + 13 + 5 + 2 + 6 + 4 + 4;
+// + own stamina + 4 skill cooldowns + 4 nearest incoming projectile (dx, dy, distance, present)
+export const FEATURE_COUNT = 3 + 2 + 2 + 2 + 2 + 18 + 10 + 18 + 5 + 2 + 6 + 4 + 4 + 1 + 4 + 4;
 
 function clip(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
@@ -111,5 +114,20 @@ export function featurize(world: WorldState, side: Side): number[] {
     clip(py / NEAR_SCALE_PX, 0, 1),
     clip((WORLD_HEIGHT - py) / NEAR_SCALE_PX, 0, 1),
   );
+
+  out.push(me.stamina / MAX_STAMINA);
+  for (let i = 0; i < SKILL_DEFS.length; i++) out.push(clip(me.cd[i] / SKILL_DEFS[i].cooldown, 0, 1));
+
+  const foeOwner = side === 'general' ? 0 : 1;
+  let nearest: { dx: number; dy: number; d: number } | null = null;
+  for (const p of world.projectiles) {
+    if (p.owner !== foeOwner) continue;
+    const ix = (p.x - me.x) / SUB;
+    const iy = (p.y - me.y) / SUB;
+    const d = Math.sqrt(ix * ix + iy * iy);
+    if (nearest === null || d < nearest.d) nearest = { dx: ix, dy: iy, d };
+  }
+  if (nearest === null) out.push(0, 0, 0, 0);
+  else out.push(unit(nearest.dx / NEAR_SCALE_PX), unit(nearest.dy / NEAR_SCALE_PX), clip(nearest.d / NEAR_SCALE_PX, 0, 1), 1);
   return out;
 }

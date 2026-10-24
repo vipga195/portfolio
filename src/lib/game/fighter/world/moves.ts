@@ -101,7 +101,7 @@ export type ProjectileDef = {
 };
 export const PROJECTILE_DEFS: Record<ProjectileMove, ProjectileDef> = {
   fireball: { speedPx: 6, life: 60, radiusPx: 10, pierce: false },
-  wave: { speedPx: 5, life: 70, radiusPx: 20, pierce: true },
+  wave: { speedPx: 5, life: 70, radiusPx: 28, pierce: true },
 };
 
 export function isProjectileMove(move: WorldMoveId): move is ProjectileMove {

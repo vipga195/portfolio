@@ -116,7 +116,8 @@ export default function TouchControls({ onChange, moveLabels, attackLabels, extr
   );
 
   return (
-    <div className="mt-4 flex w-full flex-col gap-2 select-none" style={{ touchAction: "none" }}>
+    // mousedown default moves focus off the canvas, which would pause the game
+    <div className="mt-4 flex w-full flex-col gap-2 select-none" style={{ touchAction: "none" }} onMouseDown={(e) => e.preventDefault()}>
       <div className="flex w-full items-end justify-between gap-4">
         <div className="grid flex-1 grid-cols-2 gap-2">{MOVE_BUTTONS.map(renderButton)}</div>
         <div className="flex flex-1 flex-col gap-2">{ATTACK_BUTTONS.map(renderButton)}</div>
