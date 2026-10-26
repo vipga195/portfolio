@@ -57,3 +57,5 @@ University of Science (HCMUS) — Information Technology, 2013 – 2016
 Tech stack, features and build/CI details: [docs/about-this-site.md](docs/about-this-site.md).
 
 Snake AI (Q-learning in the UI, experimental DQN with results and open work): [docs/snake-ai.md](docs/snake-ai.md).
+
+Training platform (job queue, public API, Training Lab page) and learning from the games visitors lose, all off by default behind flags, with the owner's deploy checklist and what is still open: [docs/training-platform.md](docs/training-platform.md).

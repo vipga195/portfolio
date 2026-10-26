@@ -137,6 +137,30 @@ Honest limits: (i) the global budgets cap total resource use, they do not guaran
   - Two tabs from the same client reach 64/min and can see "too many requests" until the window rolls over (handled by the shared block, not fatal).
 - **Known limits.** Off Cloudflare (no `cf-connecting-ip`) every visitor shares the single `unknown` read bucket, so the per-client budget is effectively global there. The page was checked in a real browser only for the previous version; this version is covered by the unit tests above plus a second QA pass by the reviewer.
 
+## Learning from visitors' games (online learning)
+
+The main Snake page records the moves of a game a human loses (AI off) and submits it. A learner replays every submitted game on the server and may publish a better brain. Everything is off unless `LEARNING_ENABLED=true`; a separate flag from `TRAINING_ENABLED`. Design and decisions: the `2026-10-20-learning-from-user-games` ADR in the knowledge base.
+
+- **Client** (`src/components/games/SnakeGame.tsx`, `src/lib/snake-learning/client.ts`): with AI off and the "Share my games to help the AI learn" checkbox ticked (opt-in, off by default, applies from the next game), a new game asks `POST /api/learning/session` for a signed token and a seed (3 s timeout; any failure means the game is played as before and nothing is recorded). One direction per tick is recorded; when the game ends the moves are sent once with `POST /api/learning/games`. A game with AI on, or one whose recording was interrupted, is never submitted. The brain is loaded from `GET /api/learning/brain?featuresVersion=N`, with the static `/brains/snake.json` as fallback.
+- **API** (`src/lib/snake-learning/{api,config,server-deps}.ts`, `src/app/api/learning/*`): flag off answers 404 before the limiter or the database. The request never replays the game; it checks the Origin, the body size (bytes actually read), the token (HMAC, one hour) and the shape of the moves, then stores the game with an atomic quota (`UNIQUE (game, seed)`, per source, global, pending cap). Client identity is `cf-connecting-ip` (see the known limit below). `LEARNING_SECRET` (at least 32 characters) signs tokens and hashes sources. Limits: `LEARNING_{PER_SOURCE_DAILY,GLOBAL_DAILY,MAX_PENDING,WINDOW_MS}` and `LEARNING_{SESSION,GAMES,BRAIN}_{PER_CLIENT,GLOBAL}_PER_MIN`; values out of range are rejected, not clamped.
+- **Storage** (`db/migrations/005_learning.sql`, `006_learning_indexes.sql`, `src/lib/training/submissions.ts`): `game_submissions` and an append-only `brain_publications` log. The newest row of a game is the published brain; a rollback is one more `INSERT`. Published brains are stored as `trusted` runs, so the public training API never lists them.
+- **Learner** (`scripts/learner.ts`, `src/lib/snake-learning/learner.ts`): one cycle takes the pending games, replays each one from its seed, recomputes the rewards, applies them with a small learning rate to a COPY of the published Q-table and publishes only if two checks pass on fixed seeds: not worse than the currently published brain (5 percent tolerance) AND not worse than the built-in brain (a fixed floor, so repeated small drops cannot add up). Invalid games are marked `rejected`, the rest `used`; games skipped for a per-source or duplicate-seed limit stay pending.
+
+  ```sh
+  node scripts/learner.ts --dry-run          # compute and print the report, write nothing
+  node scripts/learner.ts                    # one cycle
+  node scripts/learner.ts rollback <brainId> # or `builtin`; only trusted brains of this game are accepted
+  ```
+
+- **Honest limits.**
+  - Replay proves a game follows the rules and that the rewards are right; it does not prove a human played it. The gate and the floor are the remaining defence.
+  - The simulation in the ADR shows little to gain: with a small learning rate the table barely changes, with a high one the gate refuses. The value is mostly the product story.
+  - The evaluation seeds are fixed and public in the repository, so someone who reads the code can search for a batch that passes the gate offline. A secret or per-run seed set is not built.
+  - Off Cloudflare, or when port 1995 is reached directly, `cf-connecting-ip` can be forged, which defeats the per-source limit and the per-source cap in the learner. Only the global limits remain.
+  - Nothing schedules the learner or `PgSubmissionStore.purge`. Without a learner run, pending games reach `LEARNING_MAX_PENDING` and submissions get 429 `queue_full`; `game_submissions` grows until something purges it.
+  - The trainer image copies `src`, `scripts` and `db` but not `public/`, and the learner reads the built-in brain from `public/brains/snake.json`. It cannot run inside that image as it is. Run it from a checkout, or copy the brain into the image.
+  - Verified by tests (Memory store plus Postgres on a throwaway container), not on a real server or with real visitors. The pages were not tried in a browser for this feature.
+
 ## Deploy checklist (prod host)
 
 The trainer shares CPU and RAM with jellyfin, qbittorrent and the other services on this host: keep the compose limits.
@@ -156,3 +180,7 @@ The trainer shares CPU and RAM with jellyfin, qbittorrent and the other services
    docker compose --profile trainer pull trainer && docker compose --profile trainer up -d trainer
    ```
 4. The public API (see above) stays OFF until the owner sets `TRAINING_ENABLED=true` on the `portfolio` service, after steps 1 to 3. The UI is a separate step.
+5. **Online learning (manual, OWNER).** Apply the two new additive files the same way as step 1 (`005_learning.sql`, `006_learning_indexes.sql`; do not use `scripts/migrate.ts` for the first prod run). Take a `pg_dump` first; rollback is `DROP TABLE brain_publications, game_submissions`.
+6. Decide where the learner runs and how often (see the limit above about the trainer image), and schedule `purge` for used and rejected games.
+7. Set `LEARNING_SECRET` (32+ random characters, never in the repository) and then `LEARNING_ENABLED=true` on the `portfolio` service. Watch the first runs with `node scripts/learner.ts --dry-run` before the first real cycle, and rehearse `rollback` once.
+8. Consider binding port 1995 to `127.0.0.1` if `cloudflared` runs on the same host, so `cf-connecting-ip` cannot be forged by direct calls. The page already asks for opt-in with a checkbox; consider also a short privacy note (the checkbox text is English only).
