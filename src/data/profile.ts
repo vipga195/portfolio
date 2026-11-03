@@ -62,9 +62,9 @@ export const PROFILE = {
     vi: "Hơn 7 năm làm front-end, trong đó nhiều năm xây dựng các website phức tạp cho khách hàng Nhật Bản với React, Next.js, Vue và Nuxt.",
   } satisfies Localized,
   about: {
-    en: "I build and maintain production websites for large Japanese clients, extend Contentful CMS, run CI/CD pipelines on GitHub, and craft interactive UI with GSAP and Three.js. Front-end focused, with hands-on Node.js API experience in production; currently deepening back-end skills (SQL/PostgreSQL, Docker) — this site's contact API and deploy pipeline are my own work.",
-    ja: "日本の大手クライアントの本番Webサイトの開発・保守、Contentful CMS の拡張、GitHub での CI/CD パイプライン運用、GSAP と Three.js によるインタラクティブな UI 制作を担当しています。フロントエンドを軸に、本番環境での Node.js API 開発経験があります。現在はバックエンドスキル（SQL/PostgreSQL、Docker）を強化中で、本サイトのお問い合わせ API とデプロイパイプラインも自作しています。",
-    vi: "Tôi phát triển và bảo trì các website production cho những khách hàng lớn tại Nhật Bản, mở rộng Contentful CMS, vận hành CI/CD pipeline trên GitHub và xây dựng UI tương tác với GSAP, Three.js. Tập trung vào front-end, có kinh nghiệm thực tế xây dựng API Node.js trên production; hiện đang bổ sung kỹ năng back-end (SQL/PostgreSQL, Docker) — API form liên hệ và pipeline deploy của chính site này do tôi tự xây dựng.",
+    en: "I build and maintain production websites for large Japanese clients, extend Contentful CMS, run CI/CD pipelines on GitHub, and craft interactive UI with GSAP and Three.js. Front-end focused, with hands-on Node.js API experience in production; currently deepening back-end skills (SQL/PostgreSQL, Docker) — this site's contact API and deploy pipeline are my own work. I also own CVE management: triaging dependency advisories, assessing whether each one actually applies, and shipping targeted fixes verified by lint, type, test and build checks.",
+    ja: "日本の大手クライアントの本番Webサイトの開発・保守、Contentful CMS の拡張、GitHub での CI/CD パイプライン運用、GSAP と Three.js によるインタラクティブな UI 制作を担当しています。フロントエンドを軸に、本番環境での Node.js API 開発経験があります。現在はバックエンドスキル（SQL/PostgreSQL、Docker）を強化中で、本サイトのお問い合わせ API とデプロイパイプラインも自作しています。あわせて CVE 管理も担当しており、依存パッケージの脆弱性情報のトリアージ、実際に影響があるかの評価、lint・型チェック・テスト・ビルドで検証した最小限の修正を行っています。",
+    vi: "Tôi phát triển và bảo trì các website production cho những khách hàng lớn tại Nhật Bản, mở rộng Contentful CMS, vận hành CI/CD pipeline trên GitHub và xây dựng UI tương tác với GSAP, Three.js. Tập trung vào front-end, có kinh nghiệm thực tế xây dựng API Node.js trên production; hiện đang bổ sung kỹ năng back-end (SQL/PostgreSQL, Docker) — API form liên hệ và pipeline deploy của chính site này do tôi tự xây dựng. Tôi cũng phụ trách quản lý CVE: phân loại các cảnh báo lỗ hổng của dependency, đánh giá từng lỗ hổng có thực sự ảnh hưởng hay không, và sửa có mục tiêu rồi xác minh bằng lint, type, test và build.",
   } satisfies Localized,
   email: "trunghuy1701@gmail.com",
   github: "https://github.com/vipga195",
@@ -82,12 +82,23 @@ export const SKILLS: SkillGroup[] = [
     items: ["React", "Next.js", "TypeScript", "GSAP", "Contentful (custom extensions)", "Three.js", "HTML5", "CSS3", "Tailwind CSS", "SASS"],
   },
   {
+    title: { en: "Security & CVE Management", ja: "セキュリティ・CVE 管理", vi: "Bảo mật & quản lý CVE" },
+    items: [
+      "CVE triage & risk assessment",
+      "Dependency audits (npm audit)",
+      "Vulnerability applicability analysis",
+      "Targeted fixes verified by lint, type, test & build",
+      "XSS Prevention",
+      "CSP Configuration",
+    ],
+  },
+  {
     title: { en: "AI-assisted Development", ja: "AI 活用開発", vi: "Phát triển với AI" },
     items: ["Claude Code (daily)", "AI agents & subagents", "MCP", "Local LLM (Ollama)", "Prompt & context engineering"],
   },
   {
     title: { en: "Used regularly", ja: "日常的に使用", vi: "Dùng thường xuyên" },
-    items: ["Vue.js", "Nuxt.js", "Vite", "Node.js", "RESTful API", "GitHub Actions", "Git", "Docker", "Turborepo", "GCP (Cloud Run, Firebase Hosting)", "Responsive Design", "SEO Optimization", "Accessibility (a11y)", "Performance Tuning"],
+    items: ["Vue.js", "Nuxt.js", "Vite", "React Router", "Jotai", "SWR", "Vanilla Extract", "Node.js", "RESTful API", "GitHub Actions", "Git", "Docker", "Turborepo", "GCP (Cloud Run, Firebase Hosting)", "Responsive Design", "SEO Optimization", "Accessibility (a11y)", "Performance Tuning"],
   },
   {
     title: { en: "Used before", ja: "使用経験あり", vi: "Từng dùng" },
