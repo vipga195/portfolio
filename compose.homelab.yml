@@ -1,0 +1,9 @@
+# Homelab (x86_64) layer, built and started by the self-hosted runner:
+#   docker compose -f docker-compose.yml -f compose.homelab.yml up -d --build --wait
+services:
+  portfolio:
+    image: portfolio:homelab
+    build: .
+    mem_limit: 512m
+  db:
+    mem_limit: 512m
