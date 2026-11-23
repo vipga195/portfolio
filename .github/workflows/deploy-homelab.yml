@@ -28,10 +28,12 @@ jobs:
           lfs: true
       # .env lives only on the host (secrets never go through GitHub).
       - name: Sync source to stack dir
-        run: rsync -a --delete --exclude=.git --exclude=.env --exclude=node_modules ./ "$STACK_DIR/"
+        run: rsync -rlt --omit-dir-times --no-perms --no-group --no-owner --delete --exclude=.git --exclude=.env --exclude=node_modules ./ "$STACK_DIR/"
       - name: Build and start
         working-directory: ${{ env.STACK_DIR }}
         run: docker compose -f docker-compose.yml -f compose.homelab.yml up -d --build --wait --remove-orphans
       - name: Prune dangling images
         if: always()
-        run: docker image prune -f
+        run: |
+          docker image prune -f
+          docker builder prune -f --filter until=168h
