@@ -1,0 +1,39 @@
+name: Deploy homelab
+
+# Runs on the self-hosted runner on the homelab host. Never add pull_request / pull_request_target here:
+# fork code must not reach that runner. PR checks stay on GitHub-hosted runners (ci.yml).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-homelab
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.repository == 'vipga195/portfolio'
+    runs-on: [self-hosted, linux, x64, homelab]
+    timeout-minutes: 40
+    env:
+      STACK_DIR: /srv/stacks/portfolio
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          lfs: true
+      # .env lives only on the host (secrets never go through GitHub).
+      - name: Sync source to stack dir
+        run: rsync -rlt --omit-dir-times --no-perms --no-group --no-owner --delete --exclude=.git --exclude=.env --exclude=node_modules ./ "$STACK_DIR/"
+      - name: Build and start
+        working-directory: ${{ env.STACK_DIR }}
+        run: docker compose -f docker-compose.yml -f compose.homelab.yml up -d --build --wait --remove-orphans
+      - name: Prune dangling images
+        if: always()
+        run: |
+          docker image prune -f
+          docker builder prune -f --filter until=168h
